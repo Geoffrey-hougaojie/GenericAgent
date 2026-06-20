@@ -4,33 +4,9 @@
 # u2 (uiautomator2) 不受idle限制，适合动画密集app（美团等）
 # 弹窗检测: ui(clickable_only=True, raw=True) 找全屏FrameLayout+底部小ImageView(关闭X)
 # 已知包名: 美团外卖=com.sankuai.meituan.takeoutnew 淘宝=com.taobao.taobao
-import subprocess, xml.etree.ElementTree as ET, os, re, shutil, time
+import subprocess, xml.etree.ElementTree as ET, os, re, shutil
 
-def _find_adb():
-    """多级查找adb：PATH → 常见路径 → Everything搜索"""
-    adb = shutil.which("adb") or shutil.which("adb.exe")
-    if adb: return adb
-    # 常见安装位置
-    for p in [os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\WinGet\Packages\Google.PlatformTools_*\platform-tools\adb.exe'),
-              r'C:\Program Files\platform-tools\adb.exe']:
-        import glob; hits = glob.glob(p)
-        if hits: return hits[0]
-    # Everything 搜索（自动启动 GUI）
-    es = shutil.which("es") or r'C:\Tools\Everything\es.exe'
-    try:
-        r = subprocess.run([es, '-n', '1', '.'], capture_output=True, text=True, timeout=8)
-        if 'IPC window not found' in r.stderr:
-            subprocess.Popen([r'C:\Program Files\Everything\Everything.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(2)
-        r2 = subprocess.run([es, '-n', '3', 'adb.exe'], capture_output=True, text=True, timeout=8)
-        for line in r2.stdout.strip().split('\n'):
-            line = line.strip()
-            if line.lower().endswith('adb.exe') and 'platform' in line.lower():
-                return line
-    except: pass
-    return "adb"  # 最后兜底
-
-ADB = _find_adb()
+ADB = shutil.which("adb") or "adb"
 LOCAL_XML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_mt.xml")
 
 def _dump_u2():
