@@ -800,6 +800,16 @@ def _enable_windows_vt_mode() -> None:
             mode = ctypes.c_uint32()
             if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
                 kernel32.SetConsoleMode(handle, mode.value | enable_vt)
+        # ## 本地补丁: tui_v3_window_focus_fix — restore stdin VT input
+        # Also restore VT input on STD_INPUT_HANDLE — after focus loss on
+        # Windows the terminal emulator may reset the input mode, breaking
+        # escape-sequence delivery (arrow keys, etc.).
+        enable_vt_input = 0x0200  # ENABLE_VIRTUAL_TERMINAL_INPUT
+        stdin_handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+        stdin_mode = ctypes.c_uint32()
+        if kernel32.GetConsoleMode(stdin_handle, ctypes.byref(stdin_mode)):
+            kernel32.SetConsoleMode(stdin_handle, stdin_mode.value | enable_vt_input)
+        # /## 本地补丁
     except Exception:
         # Safe fallback: modern terminals usually already support ANSI/UTF-8;
         # older conhost may render escape codes, but the TUI should not crash.
@@ -5930,9 +5940,19 @@ class SB:
             self._build_live_lines()
 
         async def _maintenance_loop() -> None:
+            _maint_tick = 0
             while True:
                 await asyncio.sleep(0.03)
                 dirty = False
+                # ## 本地补丁: tui_v3_window_focus_fix — periodic VT/UTF-8 rearm
+                # Re-enable VT/UTF-8 every ~1s to survive terminal focus-loss
+                # on Windows where the console mode may be reset by the
+                # terminal emulator when the window regains focus.
+                _maint_tick += 1
+                if _maint_tick % 33 == 0:
+                    _enable_windows_vt_mode()
+                    _enter_utf8_charset()
+                # /## 本地补丁
                 if self._running and self._asking is None:
                     # spinner / elapsed text is time-based
                     dirty = True
