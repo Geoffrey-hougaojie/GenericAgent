@@ -24,8 +24,8 @@ st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="co
 
 st.markdown("""
 <style>
-[data-testid="stBottom"]{position:fixed!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;z-index:999;background:var(--background-color,#fff)}
-@media (min-width:768px){[data-testid="stSidebar"][aria-expanded="true"]~div [data-testid="stBottom"]{left:300px!important;width:calc(100% - 300px)!important}}
+[data-testid="stBottom"]{position:fixed!important;bottom:0!important;left:0!important;right:0!important;width:100vw!important;z-index:999;background:var(--background-color,#fff)}
+@media (min-width:768px){[data-testid="stSidebar"][aria-expanded="true"]~div [data-testid="stBottom"]{left:300px!important;width:calc(100vw - 300px)!important}}
 .stMainBlockContainer{padding-bottom:10rem!important}
 </style>
 """, unsafe_allow_html=True)
@@ -121,7 +121,7 @@ def render_sidebar():
     </style>""", unsafe_allow_html=True)
     def _sync_loop_prompt():
         st.session_state.loop_prompt = st.session_state.loop_prompt_input
-    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1, on_change=_sync_loop_prompt)
     if st.session_state.get('loop_enabled'):
         if st.button("⏹️ Stop Loop"):
             st.session_state.loop_enabled = False
