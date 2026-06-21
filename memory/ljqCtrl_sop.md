@@ -51,3 +51,8 @@ ljqCtrl.Click(ox + (bbox[0]+bbox[2])//2, oy + (bbox[1]+bbox[3])//2)
 - 控件常自带语义化 `description`/`identifier`（如 `xxx_button_more`），按 description 精确匹配比坐标稳定，枚举一次记下目标标识即可复用。
 - **坐标换算**：AX 返回的是**逻辑坐标**，截图/Click 用**物理坐标**，retina 屏 ×2（逻辑(537,121)↔物理(1074,242)实测吻合）。AX `AXPress` 直接作用元素免换算；若 AX 偶发 NOTFOUND（时序波动），用换算后物理坐标 `Click` 兜底。
 - **失焦陷阱**：点击坐标若落在窗口边界外，会点到背后别的 app 导致目标失焦。osascript `tell application "<App>" to activate` 比 ljqCtrl 的 ActivateApp 更可靠，激活后用 `frontmost` 确认。
+
+## 本地补丁
+> 以下修改为本地定制，不受 upstream sync 覆盖。如需重放：`python memory/patches/reapply_three_fixes.py`
+- **2026-06-21**: 新增 Press 键盘输入前置条件（SetForegroundWindow 激活窗口），详见避坑指南第46行。
+
