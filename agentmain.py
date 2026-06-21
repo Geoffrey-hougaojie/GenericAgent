@@ -1,9 +1,11 @@
 import os, sys, threading, queue, time, json, re, random, locale
 os.environ.setdefault('GA_LANG', 'zh' if any(k in (locale.getlocale()[0] or '').lower() for k in ('zh', 'chinese')) else 'en')
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
-elif hasattr(sys.stdout, 'reconfigure'): sys.stdout.reconfigure(errors='replace')
+try: sys.stdout.reconfigure(errors='replace')
+except: pass
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
-elif hasattr(sys.stderr, 'reconfigure'): sys.stderr.reconfigure(errors='replace')
+try: sys.stderr.reconfigure(errors='replace')
+except: pass
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from llmcore import reload_mykeys, ToolClient, MixinSession, NativeToolClient, NativeClaudeSession, NativeOAISession, resolve_client
