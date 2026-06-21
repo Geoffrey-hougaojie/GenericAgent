@@ -41,6 +41,91 @@ def _cleanup_stale_anchors():
 _cleanup_stale_anchors()
 
 
+
+# --- Auto-Discovery: check cwd for GA.md or .ga/GA.md ---
+_MAX_CONFIG_SIZE = 50 * 1024  # 50KB, protect against oversized files
+
+def _auto_discover_and_activate():
+    """模块加载时：检查当前目录有无 GA.md 或 .ga/GA.md，有则自动激活。
+    
+    保护措施：
+      - 存在任何 .active_project.* 锚时不触发（尊重历史手动选择）
+      - 环境变量 GA_NO_AUTO_PROJECT=1 可紧急禁用
+      - 仅检查 cwd 本层，不向上扫描（避免误匹配无关项目）
+      - 跳过 GA 自身根目录
+      - 单个配置文件最大 _MAX_CONFIG_SIZE 字节
+      - 所有异常静默捕获，绝不影响 GA 正常启动
+      - project_memory.md 已存在时增量合并，绝不覆盖已有记忆
+      - 未找到任一配置文件时，输出提醒
+    """
+    if os.environ.get('GA_NO_AUTO_PROJECT', '').strip() == '1':
+        return
+    if os.path.isfile(_ANCHOR):
+        return
+    if glob.glob(os.path.join(_TEMP, '.active_project.*')):
+        return
+    
+    try:
+        cwd = os.path.abspath(os.getcwd())
+    except Exception:
+        return
+    
+    # 跳过 GA 自身目录
+    if os.path.abspath(cwd) == os.path.abspath(_PROJECT_ROOT):
+        return
+    
+    # 仅检查两个位置：cwd/GA.md 和 cwd/.ga/GA.md
+    candidates = [
+        os.path.join(cwd, 'GA.md'),
+        os.path.join(cwd, '.ga', 'GA.md'),
+    ]
+    
+    for cfg_path in candidates:
+        try:
+            if not os.path.isfile(cfg_path):
+                continue
+            if os.path.getsize(cfg_path) > _MAX_CONFIG_SIZE:
+                continue
+            
+            name = os.path.basename(cwd)
+            if not name:
+                continue
+            
+            pdir = _project_dir(name)
+            os.makedirs(pdir, exist_ok=True)
+            mem_file = _mem_path(name)
+            cfg_content = open(cfg_path, encoding='utf-8').read()
+            
+            # 增量合并：只在 project_memory.md 中不存在相同内容时才追加
+            if os.path.isfile(mem_file):
+                existing = open(mem_file, encoding='utf-8').read()
+                if cfg_content.strip() not in existing:
+                    ts = time.strftime('%Y-%m-%d %H:%M')
+                    new_content = existing.rstrip() + f'\n\n## Auto-discovered from {cfg_path} ({ts})\n{cfg_content}'
+                    open(mem_file, 'w', encoding='utf-8').write(new_content)
+            else:
+                ts = time.strftime('%Y-%m-%d %H:%M')
+                open(mem_file, 'w', encoding='utf-8').write(
+                    f'# Auto-discovered from {cfg_path}\n# Time: {ts}\n\n{cfg_content}'
+                )
+            
+            open(_ANCHOR, 'w', encoding='utf-8').write(name)
+            sys.stderr.write(f'[project_mode] Auto-discovered project "{{name}}" → {{cfg_path}}\n')
+            return
+        except Exception:
+            pass
+    
+    # 未找到任何配置文件，提醒用户
+    try:
+        sys.stderr.write(
+            f'[project_mode] ⚠ 当前目录 ({{cwd}}) 未找到 GA.md 或 .ga/GA.md\n'
+            f'[project_mode]   → 在项目根目录创建 GA.md 或 .ga/GA.md 以自动激活项目模式\n'
+            f'[project_mode]   → 或设置 GA_NO_AUTO_PROJECT=1 关闭自动发现\n'
+        )
+    except Exception:
+        pass
+
+
 def _active_project(ctx=None):
     """返回当前激活的项目名；未激活返回 None。
 
