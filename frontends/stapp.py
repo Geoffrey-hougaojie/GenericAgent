@@ -377,40 +377,5 @@ def _idle_checker():
         st.rerun(scope="app")
 _idle_checker()
 
+
 ## 本地补丁: stapp_pyw_height_68
-    if st.session_state.get('loop_enabled'):
-        if st.button("⏹️ Stop Loop"):
-            st.session_state.loop_enabled = False
-            st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
-        st.caption("🔁 Looping")
-    else:
-        if st.button("🔁 Loop!"):
-            st.session_state.loop_enabled = True
-            st.session_state.loop_prompt = loop_prompt
-            st.session_state['_inject_prompt'] = loop_prompt
-            st.toast("🔁 Looping"); st.rerun(scope="app")
-    st.divider()
-    if st.button(T('auto_start')):
-        st.session_state.last_reply_time = int(time.time()) - 1800
-        st.session_state.autonomous_enabled = True
-        st.rerun(scope="app")
-    if st.session_state.autonomous_enabled:
-        if st.button(T('auto_pause')):
-            st.session_state.autonomous_enabled = False
-            st.toast(T('auto_pause')); st.rerun(scope="app")
-        st.caption(T('auto_on_cap'))
-    else:
-        if st.button(T('auto_enable'), type="primary"):
-            st.session_state.autonomous_enabled = True
-            st.toast("✅"); st.rerun(scope="app")
-        st.caption(T('auto_off_cap'))
-
-    st.markdown("""<style>
-    [data-testid="stSidebar"] .stTextArea textarea {
-        field-sizing: content; min-height: 1.6em !important; height: auto !important;
-    }
-    </style>""", unsafe_allow_html=True)
-with st.sidebar: render_sidebar()
-
-def fold_turns(text):
-    """Return list of segments: [{'type':'text','content':...}, {'type':'fold','title':...,'content':...}]"""
