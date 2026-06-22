@@ -1,16 +1,12 @@
 import os, sys, subprocess
 from urllib.request import urlopen
 from urllib.parse import quote
-# ## 本地补丁: stapp_pyw_stdout_stderr
-# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
-# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 try: sys.stdout.reconfigure(errors='replace')
 except: pass
 try: sys.stderr.reconfigure(errors='replace')
 except: pass
-# /## 本地补丁
 script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(script_dir, '..')))
 sys.path.append(os.path.abspath(script_dir))
@@ -118,11 +114,14 @@ def render_sidebar():
         st.session_state['_inject_prompt'] = T('suggest_prompt')
         st.rerun(scope="app")
     st.divider()
-
-    # ── Loop prompt & autonomous action controls ──
+    st.markdown("""<style>
+    [data-testid="stSidebar"] .stTextArea textarea {
+        field-sizing: content; min-height: 1.6em !important; height: auto !important;
+    }
+    </style>""", unsafe_allow_html=True)
     def _sync_loop_prompt():
         st.session_state.loop_prompt = st.session_state.loop_prompt_input
-    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)  # ## 本地补丁: stapp_pyw_height_68
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1, on_change=_sync_loop_prompt)
     if st.session_state.get('loop_enabled'):
         if st.button("⏹️ Stop Loop"):
             st.session_state.loop_enabled = False
@@ -149,12 +148,6 @@ def render_sidebar():
             st.session_state.autonomous_enabled = True
             st.toast("✅"); st.rerun(scope="app")
         st.caption(T('auto_off_cap'))
-
-    st.markdown("""<style>
-    [data-testid="stSidebar"] .stTextArea textarea {
-        field-sizing: content; min-height: 1.6em !important; height: auto !important;
-    }
-    </style>""", unsafe_allow_html=True)
 with st.sidebar: render_sidebar()
 
 def fold_turns(text):
@@ -383,3 +376,154 @@ def _idle_checker():
         st.session_state['last_reply_time'] = int(time.time())     # 防重入
         st.rerun(scope="app")
 _idle_checker()
+
+# ## 本地补丁: stapp_pyw_stdout_stderr
+
+# /## 本地补丁
+script_dir = os.path.dirname(__file__)
+sys.path.append(os.path.abspath(os.path.join(script_dir, '..')))
+sys.path.append(os.path.abspath(script_dir))
+
+import streamlit as st
+import time, json, re, threading, queue
+from datetime import timedelta
+from agentmain import GeneraticAgent
+import chatapp_common  # activate /continue command (monkey patches GeneraticAgent)
+from continue_cmd import handle_frontend_command, reset_conversation, list_sessions, extract_ui_messages
+from btw_cmd import handle_frontend_command as btw_handle_frontend
+from export_cmd import last_assistant_text, export_to_temp, wrap_for_clipboard
+
+st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="collapsed")
+
+st.markdown("""
+<style>
+[data-testid="stBottom"]{position:fixed!important;bottom:0!important;left:0!important;right:0!important;width:100vw!important;z-index:999;background:var(--background-color,#fff)}
+@media (min-width:768px){[data-testid="stSidebar"][aria-expanded="true"]~div [data-testid="stBottom"]{left:300px!important;width:calc(100vw - 300px)!important}}
+.stMainBlockContainer{padding-bottom:10rem!important}
+</style>
+""", unsafe_allow_html=True)
+
+LANG = os.environ.get('GA_LANG', 'zh')
+if LANG not in ('zh', 'en'): LANG = 'zh'
+I18N = {
+    'zh': {
+        'force_stop': '强行停止任务',
+        'desktop_pet': '🐱 桌面宠物',
+        'suggest_btn': '🎯 给我找点事做',
+        'suggest_prompt': '按照自主行动的规划部分，充分分析我的情况，给我生成一批TODO，务必让我感兴趣',
+        'auto_start': '开始空闲自主行动',
+        'auto_pause': '⏸️ 禁止自主行动',
+        'auto_enable': '▶️ 允许自主行动',
+        'auto_on_cap': '🟢 自主行动运行中，会在你离开它30分钟后自动进行',
+        'auto_off_cap': '🔴 自主行动已停止',
+        'auto_prompt': '[AUTO]🤖 用户已经离开超过30分钟，作为自主智能体，请阅读自动化sop，执行自动任务。',
+    },
+    'en': {
+        'force_stop': 'Force Stop',
+        'desktop_pet': '🐱 Desktop Pet',
+        'suggest_btn': '🎯 Suggest tasks',
+        'suggest_prompt': 'Following the planning section of autonomous sop, analyze my situation thoroughly and generate a batch of TODOs that will interest me.',
+        'auto_start': 'Start idle auto-action',
+        'auto_pause': '⏸️ Pause auto-action',
+        'auto_enable': '▶️ Enable auto-action',
+        'auto_on_cap': '🟢 Auto-action enabled, triggers after 30min idle',
+        'auto_off_cap': '🔴 Auto-action disabled',
+        'auto_prompt': '[AUTO]🤖 User has been idle for over 30 minutes. As an autonomous agent, read the automation SOP and execute automatic tasks.',
+    },
+}
+def T(key): return I18N.get(LANG, I18N['zh']).get(key, key)
+
+@st.cache_resource
+def init():
+    agent = GeneraticAgent()
+    if agent.llmclient is None:
+        st.error("⚠️ Please set mykey.py!")
+        st.stop()
+    else: threading.Thread(target=agent.run, daemon=True).start()
+    return agent
+
+agent = init()
+
+st.title("🖥️ Cowork")
+
+st.session_state.setdefault('autonomous_enabled', False)
+
+@st.fragment
+def render_sidebar():
+    st.session_state.setdefault('autonomous_enabled', False)
+    llm_options = agent.list_llms()
+    current_idx = agent.llm_no
+    llm_labels = {idx: f"{idx}: {(name or '').strip()}" for idx, name, _ in llm_options}
+    st.caption(f"LLM Core: {llm_labels.get(current_idx, str(current_idx))}")
+    selected_idx = st.selectbox("LLM", [idx for idx, _, _ in llm_options], index=next((i for i, (idx, _, _) in enumerate(llm_options) if idx == current_idx), 0), format_func=llm_labels.get, label_visibility="collapsed", key="sidebar_llm_select")
+    if selected_idx != current_idx:
+        agent.next_llm(selected_idx); st.rerun(scope="fragment")
+    if st.button(T('force_stop')):
+        agent.abort(); st.toast("Stop signal sended"); st.rerun()
+    if st.button(T('desktop_pet')):
+        kwargs = {'creationflags': 0x08} if sys.platform == 'win32' else {}
+        pet_script = os.path.join(script_dir, 'desktop_pet_v2.pyw')
+        if not os.path.exists(pet_script):
+            st.error("desktop_pet_v2.pyw not found")
+            return
+        subprocess.Popen([sys.executable, pet_script], **kwargs)
+        def _pet_req(q):
+            def _do():
+                try: urlopen(f'http://127.0.0.1:41983/?{q}', timeout=2)
+                except Exception: pass
+            threading.Thread(target=_do, daemon=True).start()
+        agent._pet_req = _pet_req
+        if not hasattr(agent, '_turn_end_hooks'): agent._turn_end_hooks = {}
+        def _pet_hook(ctx):
+            parts = [f"Turn {ctx.get('turn','?')}"]
+            if ctx.get('summary'): parts.append(ctx['summary'])
+            if ctx.get('exit_reason'): parts.append('DONE')
+            _pet_req(f'msg={quote(chr(10).join(parts))}')
+            if ctx.get('exit_reason'): _pet_req('state=idle')
+        agent._turn_end_hooks['pet'] = _pet_hook
+        st.toast("Desktop pet started")
+    
+    if st.button(T('suggest_btn')):
+        st.session_state['_inject_prompt'] = T('suggest_prompt')
+        st.rerun(scope="app")
+    st.divider()
+
+
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)  # ## 本地补丁: stapp_pyw_height_68
+    if st.session_state.get('loop_enabled'):
+        if st.button("⏹️ Stop Loop"):
+            st.session_state.loop_enabled = False
+            st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
+        st.caption("🔁 Looping")
+    else:
+        if st.button("🔁 Loop!"):
+            st.session_state.loop_enabled = True
+            st.session_state.loop_prompt = loop_prompt
+            st.session_state['_inject_prompt'] = loop_prompt
+            st.toast("🔁 Looping"); st.rerun(scope="app")
+    st.divider()
+    if st.button(T('auto_start')):
+        st.session_state.last_reply_time = int(time.time()) - 1800
+        st.session_state.autonomous_enabled = True
+        st.rerun(scope="app")
+    if st.session_state.autonomous_enabled:
+        if st.button(T('auto_pause')):
+            st.session_state.autonomous_enabled = False
+            st.toast(T('auto_pause')); st.rerun(scope="app")
+        st.caption(T('auto_on_cap'))
+    else:
+        if st.button(T('auto_enable'), type="primary"):
+            st.session_state.autonomous_enabled = True
+            st.toast("✅"); st.rerun(scope="app")
+        st.caption(T('auto_off_cap'))
+
+    st.markdown("""<style>
+    [data-testid="stSidebar"] .stTextArea textarea {
+        field-sizing: content; min-height: 1.6em !important; height: auto !important;
+    }
+    </style>""", unsafe_allow_html=True)
+with st.sidebar: render_sidebar()
+
+def fold_turns(text):
+    """Return list of segments: [{'type':'text','content':...}, {'type':'fold','title':...,'content':...}]"""
+

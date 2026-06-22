@@ -1,11 +1,9 @@
 import os, sys, threading, queue, time, json, re, random, locale
 os.environ.setdefault('GA_LANG', 'zh' if any(k in (locale.getlocale()[0] or '').lower() for k in ('zh', 'chinese')) else 'en')
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
-try: sys.stdout.reconfigure(errors='replace')
-except: pass
+elif hasattr(sys.stdout, 'reconfigure'): sys.stdout.reconfigure(errors='replace')
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
-try: sys.stderr.reconfigure(errors='replace')
-except: pass
+elif hasattr(sys.stderr, 'reconfigure'): sys.stderr.reconfigure(errors='replace')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from llmcore import reload_mykeys, ToolClient, MixinSession, NativeToolClient, NativeClaudeSession, NativeOAISession, resolve_client
@@ -36,7 +34,7 @@ if not os.path.exists(cdp_cfg):
     try:
         os.makedirs(os.path.dirname(cdp_cfg), exist_ok=True)
         open(cdp_cfg, 'w', encoding='utf-8').write(f"const TID = '__ljq_{hex(random.randint(0, 99999999))[2:8]}';")
-    except Exception as e: print(f'[WARN] CDP config init failed: {e} — advanced web features (tmwebdriver) will be unavailable.')
+    except Exception as e: print(f'[WARN] CDP config init failed: {e} â advanced web features (tmwebdriver) will be unavailable.')
 
 def get_system_prompt():
     with open(os.path.join(script_dir, f'assets/sys_prompt{lang_suffix}.txt'), 'r', encoding='utf-8') as f: prompt = f.read()
@@ -128,10 +126,10 @@ class GenericAgent:
             try: v = json.loads(v)  # cover number parsing
             except (json.JSONDecodeError, ValueError): pass
             setattr(self.llmclient.backend, k, v)
-            display_queue.put({'done': smart_format(f"✅ session.{k} = {repr(v)}", max_str_len=500), 'source': 'system'})
+            display_queue.put({'done': smart_format(f"â session.{k} = {repr(v)}", max_str_len=500), 'source': 'system'})
             return None
         if raw_query.strip() == '/resume':
-            return r'帮我看看最近有哪些会话可以恢复。读model_responses/目录，按修改时间取最近10个文件，从每个文件里找最后一个<history>...</history>块，用一句话总结每个会话在聊什么，列表给我选。注意读文件后要把字面的\n替换成真换行才能正确匹配。'
+            return r'å¸®æççæè¿æåªäºä¼è¯å¯ä»¥æ¢å¤ãè¯»model_responses/ç®å½ï¼æä¿®æ¹æ¶é´åæè¿10ä¸ªæä»¶ï¼ä»æ¯ä¸ªæä»¶éæ¾æåä¸ä¸ª<history>...</history>åï¼ç¨ä¸å¥è¯æ»ç»æ¯ä¸ªä¼è¯å¨èä»ä¹ï¼åè¡¨ç»æéãæ³¨æè¯»æä»¶åè¦æå­é¢ç\næ¿æ¢æçæ¢è¡æè½æ­£ç¡®å¹éã'
         return raw_query
 
     def run(self):
@@ -150,14 +148,14 @@ class GenericAgent:
             rquery = smart_format(raw_query.replace('\n', ' '), max_str_len=200)
             self.history.append(f"[USER]: {rquery}")
             sys_prompt = get_system_prompt() + '\n'.join(self.extra_sys_prompts) + getattr(self.llmclient.backend, 'extra_sys_prompt', '')
-            if self.peer_hint: sys_prompt += f"\n[Peer] 用户提及其他会话/后台任务状态时: temp/model_responses/ (只找近期修改的文件尾部)\n"
+            if self.peer_hint: sys_prompt += f"\n[Peer] ç¨æ·æåå¶ä»ä¼è¯/åå°ä»»å¡ç¶ææ¶: temp/model_responses/ (åªæ¾è¿æä¿®æ¹çæä»¶å°¾é¨)\n"
             handler = GenericAgentHandler(self, self.history, os.path.join(script_dir, 'temp'))
             if getattr(self, 'no_print', False): handler.print = lambda *a, **k: None
             if self.handler and 'key_info' in self.handler.working: 
-                ki = re.sub(r'\n\[SYSTEM\] 此为.*?工作记忆[。\n]*', '', self.handler.working['key_info'])  # 去旧
+                ki = re.sub(r'\n\[SYSTEM\] æ­¤ä¸º.*?å·¥ä½è®°å¿[ã\n]*', '', self.handler.working['key_info'])  # å»æ§
                 handler.working['key_info'] = ki
                 handler.working['passed_sessions'] = ps = self.handler.working.get('passed_sessions', 0) + 1
-                if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] 此为 {ps} 个对话前设置的key_info，若已在新任务，先更新或清除工作记忆。\n'
+                if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] æ­¤ä¸º {ps} ä¸ªå¯¹è¯åè®¾ç½®çkey_infoï¼è¥å·²å¨æ°ä»»å¡ï¼åæ´æ°ææ¸é¤å·¥ä½è®°å¿ã\n'
             self.handler = handler  # although new handler, the **full** history is in llmclient, so it is full history!
             self.llmclient.log_path = self.log_path
             if self.force_non_stream:
@@ -199,8 +197,8 @@ if __name__ == '__main__':
     import argparse
     from datetime import datetime
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', metavar='IODIR', help='一次性任务模式，先看subagent.md')
-    parser.add_argument('--reflect', metavar='SCRIPT', help='反射模式：加载监控脚本，check()触发时发任务')
+    parser.add_argument('--task', metavar='IODIR', help='ä¸æ¬¡æ§ä»»å¡æ¨¡å¼ï¼åçsubagent.md')
+    parser.add_argument('--reflect', metavar='SCRIPT', help='åå°æ¨¡å¼ï¼å è½½çæ§èæ¬ï¼check()è§¦åæ¶åä»»å¡')
     parser.add_argument('--input', help='prompt')
     parser.add_argument('--llm_no', type=int, default=0)
     parser.add_argument('--verbose', action='store_true')
@@ -237,11 +235,11 @@ if __name__ == '__main__':
         while True:
             dq = agent.put_task(raw, source='task')
             while 'done' not in (item := dq.get(timeout=1200)): 
-                if 'next' in item and random.random() < 0.95:  # 概率写一次中间结果
+                if 'next' in item and random.random() < 0.95:  # æ¦çåä¸æ¬¡ä¸­é´ç»æ
                     with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item.get('next', ''))
             with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item['done'] + '\n\n[ROUND END]\n')
-            consume_file(d, '_stop')  # 已经成功停下来了，避免打断下次reply
-            for _ in range(300):  # 等reply.txt，10分钟超时
+            consume_file(d, '_stop')  # å·²ç»æååä¸æ¥äºï¼é¿åææ­ä¸æ¬¡reply
+            for _ in range(300):  # ç­reply.txtï¼10åéè¶æ¶
                 time.sleep(2)
                 if (raw := consume_file(d, 'reply.txt')): break
             else: break
@@ -292,8 +290,8 @@ if __name__ == '__main__':
             try: model = agent.get_llm_name(model=True) or '?'
             except Exception: model = '?'
             try:
-                sys.stdout.write(f'\x1b[92m✦\x1b[0m \x1b[1mGenericAgent\x1b[0m '
-                                 f'\x1b[90m· cli · model:\x1b[0m {model}\n')
+                sys.stdout.write(f'\x1b[92mâ¦\x1b[0m \x1b[1mGenericAgent\x1b[0m '
+                                 f'\x1b[90mÂ· cli Â· model:\x1b[0m {model}\n')
                 sys.stdout.flush()
             except Exception: pass
         while True:

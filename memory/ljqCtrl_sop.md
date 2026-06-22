@@ -56,3 +56,5 @@ ljqCtrl.Click(ox + (bbox[0]+bbox[2])//2, oy + (bbox[1]+bbox[3])//2)
 > 以下修改为本地定制，不受 upstream sync 覆盖。如需重放：`python memory/patches/reapply_three_fixes.py`
 - **2026-06-21**: 新增 Press 键盘输入前置条件（SetForegroundWindow 激活窗口），详见避坑指南第46行。
 
+
+
