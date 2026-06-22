@@ -6049,15 +6049,6 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == '__main__':
     raise SystemExit(main())
 
-        # ## 本地补丁: tui_v3_window_focus_fix — restore stdin VT input
-        enable_vt_input = 0x0200  # ENABLE_VIRTUAL_TERMINAL_INPUT
-        stdin_handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
-        stdin_mode = ctypes.c_uint32()
-        if kernel32.GetConsoleMode(stdin_handle, ctypes.byref(stdin_mode)):
-            kernel32.SetConsoleMode(stdin_handle, stdin_mode.value | enable_vt_input)
-        # /## 本地补丁
-    except Exception:
-
                 # ## 本地补丁: tui_v3_window_focus_fix — periodic VT/UTF-8 rearm
                 _maint_tick += 1
                 if _maint_tick % 33 == 0:
@@ -6065,4 +6056,5 @@ if __name__ == '__main__':
                     _enter_utf8_charset()
                 # /## 本地补丁
                 if self._running and self._asking is None:
+
 

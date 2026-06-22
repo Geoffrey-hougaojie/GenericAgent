@@ -11,12 +11,12 @@ Design (per user 2026-05-27):
   free to display the raw `/cmd ...` as the visible bubble).  This keeps the
   agent in-session, lets it use every tool/SOP it normally would, and means
   this file owns zero LLM logic.
-- `/scheduler` is the only exception â it touches local FS state directly via
+- `/scheduler` is the only exception — it touches local FS state directly via
   `sche_tasks/*.json` and the existing scheduler daemon, no LLM needed.
 - All prompts deliberately *name* the relevant SOP file so the agent re-reads
   it before acting (per CONSTITUTION rule 2: SOP-first).
 
-This module has zero TUI imports â both frontends can depend on it without
+This module has zero TUI imports — both frontends can depend on it without
 either depending on the other.
 """
 from __future__ import annotations
@@ -48,7 +48,7 @@ def detect_user_shell() -> tuple[list[str], str]:
       2. Windows only: Git Bash at the canonical install paths
       3. `bash` anywhere on PATH (WSL bash, Cygwin, MSYS2, etc.)
       4. Windows only: `pwsh` then `powershell.exe` on PATH
-      5. Unix `/bin/sh` / Windows `%COMSPEC%` (cmd.exe) â last resort
+      5. Unix `/bin/sh` / Windows `%COMSPEC%` (cmd.exe) — last resort
     """
     global _USER_SHELL
     if _USER_SHELL is not None:
@@ -98,7 +98,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 # which prompt happens to be bilingual.  Source of truth, in order:
 #   1. `GA_LANG` env var (scriptable override; matches tui_v3 convention)
 #   2. tui_v3's persisted settings file (same path as tui_v3.py:_SETTINGS_PATH)
-#   3. system locale (zh* â 'zh', else 'en')
+#   3. system locale (zh* → 'zh', else 'en')
 # When the user switches language inside tui_v3 (set_lang persists), the next
 # call here picks it up automatically -- no formal coupling, just a shared file.
 _SETTINGS_PATH = _ROOT / "temp" / "tui_v3_settings.json"
@@ -126,16 +126,16 @@ def _current_lang() -> str:
 # SOP paths are written inline as literal strings in each builder below: a
 # literal is self-documenting and locally readable, and a stale path is a
 # zero-radius failure (the prompt is a hint to an intelligent agent, which
-# re-reads the dir / asks if a SOP moved) â so we deliberately do NOT wrap it
+# re-reads the dir / asks if a SOP moved) — so we deliberately do NOT wrap it
 # in a registry + existence-check machinery.
 
-def _tail(args_text: str, label: str = "é¢å¤æç¤º") -> str:
+def _tail(args_text: str, label: str = "额外指示") -> str:
     """Append user-supplied args after a slash command as a free-form suffix.
 
     User pattern (2026-05-27): the base prompt is a fixed injection that names
     the SOP path; anything the user types after `/cmd ` is appended verbatim so
     they can add per-invocation hints (e.g. `/morphling https://github.com/...`
-    or `/goal è°ç  Xï¼é¢ç® 50k token`).
+    or `/goal 调研 X，预算 50k token`).
     """
     extra = (args_text or "").strip()
     return f"\n\n{label}: {extra}" if extra else ""
@@ -180,81 +180,81 @@ def build_update_prompt(args_text: str = "") -> str:
             "6. Finish with a short summary: branch HEAD, distance vs upstream, per-file outcome "
             "(took upstream / kept+adapted local), and where backups went.\n"
             "\n"
-            "#### Say 'Congratulations! ð' to the user\n"
-            "After a successful update, say: \"Congratulations! ð You have successfully "
+            "#### Say 'Congratulations! 🎉' to the user\n"
+            "After a successful update, say: \"Congratulations! 🎉 You have successfully "
             "updated GenericAgent!\"\n"
             "\n"
-            "#### Ask for a Star â­\n"
+            "#### Ask for a Star ⭐\n"
             "Then you may ask: \"If you found this helpful, would you like to star the "
-            "GenericAgent repository? It helps the project grow! â­\""
+            "GenericAgent repository? It helps the project grow! ⭐\""
             f"{_tail(args_text, 'Extra instructions')}"
         )
     return (
-        "è¯·ä½ æ´æ°å½å GenericAgent ä»åºï¼å®æ¹ä¸æ¸¸ä¸º "
-        "https://github.com/Lsdefine/GenericAgent ã\n"
-        "1. å `git fetch upstream`ï¼è¯å«å½ååæ¯ï¼ä»¥åæ¯å¦å­å¨é¢å upstream çæ¬å° commitã\n"
-        "2. ç»åºç®æ´é¢è§ï¼æ¬å°å°æªåå«ç upstream æè¿æäº¤ï¼ç­ hash + æ é¢ + æ¥æï¼ååæ´æä»¶æè¦ã\n"
-        "3. åå¯¹é½ãæäº¤åå²ãå°ä¸æ¸¸ï¼ä¼åä¸æ¸¸ï¼ï¼\n"
-        "   - è¥å­å¨æ¬å° commitï¼`git merge upstream/main` åå¹¶è¿å½ååæ¯ï¼å²çªä¸å¾ä¼åä¸æ¸¸ï¼ä¿çæ¬å° commitï¼å¯äº§ç merge commitï¼ã\n"
-        "   - å¦åï¼æ§è¡ `git reset --mixed upstream/main`ï¼ä½¿æ¬å° `main` çæäº¤åå²ä¸ upstream/main å®å¨å¯¹é½ãä¸è¦åå»ºä»»ä½æ° commitã\n"
-        "4. éè¦ï¼è¿é¡»æ ¸å¯¹ãå·¥ä½åºæä»¶ãï¼æ­¢æ­¥äºç¬¬ 3 æ­¥å¹¶ä¸å¤ã`git reset --mixed` ä¸ `git merge` "
-        "åªç§»å¨æäº¤åå²ä¸ç´¢å¼ï¼ä¸ä¼éåé£äºå·²å¸¦æªæäº¤æ¬å°æ¹å¨çæä»¶ï¼äºæ¯è¿äºè¿æ¶æä»¶ç»§ç»­è¦çå¨ä¸æ¸¸"
-        "ææ°çä¹ä¸ãè¿æ­£æ¯âHEAD å·²å¯¹é½ï¼ä½æä»¶å¶å®è¿æ¯æ§çâçæ ¹å ãéæä»¶æ ¸å¯¹ï¼\n"
-        "   a. `git diff --name-only upstream/main` ååºå·¥ä½åºåå®¹ä¸ä¸æ¸¸ä¸ä¸è´çå¨é¨ tracked æä»¶ã\n"
-        "   b. æ¯ä¸ªæä»¶æä¼åä¸æ¸¸å¤æ­ãè¿æ¶æ®çãææä¸æ¸¸ç¹æ§æ¹åæ§ççæ¬å°æ¹å¨ï¼åä¸æ¸¸ï¼åå¤ä»½ï¼å "
-        "`git checkout upstream/main -- <file>`ãä¸æ¸¸æ²¡æä¸ä»ææçæ¬å°å¢å¼ºï¼æ¬æºéç½®ãå¯é¥æ¨¡æ¿å ä½ã"
-        "fork ä¸å±åè½ï¼ä¿çï¼å¹¶å¨ä¸æ¸¸ææ°çä¸éæ°ééï¼èéæ´æä»¶è¦çä¸æ¸¸ã\n"
-        "   c. ä¼åä¸æ¸¸ï¼æ¬å°ä»ä¿çä¸æ¸¸ç¼ºå¤±ä¸æä»·å¼çé¨åãç¦æ­¢ `git add -A`ãç¦æ­¢æ´åæ¯ checkout è¦çãç¦æ­¢ç²ç®å¨ä¿çã\n"
-        "5. ä¸è¦è¿è¡ä»»ä½ git commitãè¦çä»»ä½æä»¶ååå¤ä»½ã\n"
-        "6. æåç»åºç®ç­å°ç»ï¼åæ¯ HEADãä¸ä¸æ¸¸å·®è·ãéæä»¶å¤çç»æï¼åä¸æ¸¸ / ä¿çå¹¶ééæ¬å°ï¼ãå¤ä»½ä½ç½®ã\n"
+        "请你更新当前 GenericAgent 仓库，官方上游为 "
+        "https://github.com/Lsdefine/GenericAgent 。\n"
+        "1. 先 `git fetch upstream`；识别当前分支，以及是否存在领先 upstream 的本地 commit。\n"
+        "2. 给出简洁预览：本地尚未包含的 upstream 最近提交（短 hash + 标题 + 日期）及变更文件摘要。\n"
+        "3. 先对齐【提交历史】到上游（优先上游）：\n"
+        "   - 若存在本地 commit：`git merge upstream/main` 合并进当前分支，冲突一律优先上游，保留本地 commit（可产生 merge commit）。\n"
+        "   - 否则：执行 `git reset --mixed upstream/main`，使本地 `main` 的提交历史与 upstream/main 完全对齐。不要创建任何新 commit。\n"
+        "4. 重要：还须核对【工作区文件】，止步于第 3 步并不够。`git reset --mixed` 与 `git merge` "
+        "只移动提交历史与索引，不会重写那些已带未提交本地改动的文件，于是这些过时文件继续覆盖在上游"
+        "最新版之上。这正是“HEAD 已对齐，但文件其实还是旧的”的根因。逐文件核对：\n"
+        "   a. `git diff --name-only upstream/main` 列出工作区内容与上游不一致的全部 tracked 文件。\n"
+        "   b. 每个文件按优先上游判断。过时残留、或把上游特性改回旧版的本地改动，取上游：先备份，再 "
+        "`git checkout upstream/main -- <file>`。上游没有且仍有效的本地增强（本机配置、密钥模板占位、"
+        "fork 专属功能）保留，并在上游最新版上重新适配，而非整文件覆盖上游。\n"
+        "   c. 优先上游；本地仅保留上游缺失且有价值的部分。禁止 `git add -A`、禁止整分支 checkout 覆盖、禁止盲目全保留。\n"
+        "5. 不要进行任何 git commit。覆盖任何文件前先备份。\n"
+        "6. 最后给出简短小结：分支 HEAD、与上游差距、逐文件处理结果（取上游 / 保留并适配本地）、备份位置。\n"
         "\n"
-        "#### åç¨æ·è¯´ 'Congratulations! ð'\n"
-        "æ´æ°æååï¼è¯·å¯¹ç¨æ·è¯´ï¼\"Congratulations! ð ä½ å·²æåæ´æ° GenericAgentï¼\"\n"
+        "#### 向用户说 'Congratulations! 🎉'\n"
+        "更新成功后，请对用户说：\"Congratulations! 🎉 你已成功更新 GenericAgent！\"\n"
         "\n"
-        "#### éè¯·ç¨æ·ç¹ Star â­\n"
-        "éåå¯éè¯·ï¼\"å¦æè§å¾æå¸®å©ï¼è¦ä¸è¦ç» GenericAgent ä»åºç¹ä¸ª Starï¼è¿ä¼è®©é¡¹ç®æé¿æ´å¿«ï¼â­\""
+        "#### 邀请用户点 Star ⭐\n"
+        "随后可邀请：\"如果觉得有帮助，要不要给 GenericAgent 仓库点个 Star？这会让项目成长更快！⭐\""
         f"{_tail(args_text)}"
     )
 
 
 def build_autorun_prompt(args_text: str = "") -> str:
     return (
-        "è¯·è¿å¥ãèªä¸»æ¢ç´¢ / autonomous æ¨¡å¼ãï¼åè¯» "
-        "memory/autonomous_operation_sop.mdã"
-        "å¨ç¨èªé©±ï¼ä¸å¯é / é«é£é©å¨ä½å ask_user ï¼"
-        "ç»æ¡ç»ä¸ä»½ç®æåæ§ï¼åäºä»ä¹ / äº§ç©å¨åª / ä¸ä¸æ­¥ï¼ã"
-        f"{_tail(args_text, 'ä»»å¡ç§å­')}"
+        "请进入「自主探索 / autonomous 模式」：先读 "
+        "memory/autonomous_operation_sop.md。"
+        "全程自驱，不可逆 / 高风险动作先 ask_user ，"
+        "结案给一份简明回执（做了什么 / 产物在哪 / 下一步）。"
+        f"{_tail(args_text, '任务种子')}"
     )
 
 
 def build_morphling_prompt(args_text: str = "") -> str:
     return (
-        "è¯·å¯ç¨ Morphling æ¨¡å¼åå¬ / è¸é¦å¤é¨é¡¹ç®å°æ¬ä»åºï¼åè¯» "
-        "memory/morphling_sop.mdã"
-        "æ²¡æç®æ å ask_user å GitHub ä»åº / æ¬å°è·¯å¾ / è½åæè¿°ã"
-        f"{_tail(args_text, 'ç®æ æè½/ä»åº')}"
+        "请启用 Morphling 模式吞噬 / 蒸馏外部项目到本仓库：先读 "
+        "memory/morphling_sop.md。"
+        "没有目标先 ask_user 取 GitHub 仓库 / 本地路径 / 能力描述。"
+        f"{_tail(args_text, '目标技能/仓库')}"
     )
 
 
 def build_goal_prompt(args_text: str = "") -> str:
     return (
-        "è¯·è¿å¥ Goal æ¨¡å¼ï¼åè¯» memory/goal_mode_sop.mdã"
-        "è¥æªç»ç®æ ï¼å ask_user ä¸æ¬¡æ§é®æ¸ï¼ä¸å¥è¯ç®æ  + condition çº¦æã"
-        f"{_tail(args_text, 'ç¨æ·ç®æ ')}"
+        "请进入 Goal 模式：先读 memory/goal_mode_sop.md。"
+        "若未给目标，先 ask_user 一次性问清：一句话目标 + condition 约束。"
+        f"{_tail(args_text, '用户目标')}"
     )
 
 
 def build_hive_prompt(args_text: str = "") -> str:
     return (
-        "è¯·è¿å¥ Goal Hive æ¨¡å¼ï¼å¤ worker åä½ç goalï¼ï¼åè¯» "
-        "memory/goal_hive_sop.mdã"
-        "éç¾¤ç®æ  / worker éé¢ / ç»æ­¢æ¡ä»¶æªæç¡®æ¶å ask_user è¡¥é½åå¯å¨ã"
-        f"{_tail(args_text, 'éç¾¤ç®æ ')}"
+        "请进入 Goal Hive 模式（多 worker 协作版 goal）：先读 "
+        "memory/goal_hive_sop.md。"
+        "集群目标 / worker 配额 / 终止条件未明确时先 ask_user 补齐再启动。"
+        f"{_tail(args_text, '集群目标')}"
     )
 
 
 def build_conductor_prompt(args_text: str = "") -> str:
-    """`/conductor <task>` â run `frontends/conductor.py` on the task.
+    """`/conductor <task>` → run `frontends/conductor.py` on the task.
 
     Upstream `memory/` ships no conductor SOP, so we deliberately keep the
     prompt short: name the entrypoint and forward the task verbatim.  The
@@ -263,10 +263,10 @@ def build_conductor_prompt(args_text: str = "") -> str:
     """
     args_text = (args_text or "").strip()
     if args_text:
-        return f"è¯·è°ç¨ frontends/conductor.py æ§è¡ï¼{args_text}"
+        return f"请调用 frontends/conductor.py 执行：{args_text}"
     return (
-        "è¯·è°ç¨ frontends/conductor.pyï¼æ ¹æ®åç»­æä»¤å®æå¤ subagent ç¼æã"
-        "è¥ä»»å¡æè¿°ç¼ºå¤±ï¼å ask_user ä¸æ¬¡æ§è¡¥é½ã"
+        "请调用 frontends/conductor.py，根据后续指令完成多 subagent 编排。"
+        "若任务描述缺失，先 ask_user 一次性补齐。"
     )
 
 
@@ -331,11 +331,11 @@ def list_launchable_services() -> list[dict]:
     set of launchable services as the GUI launcher.
 
     Sources (hub.pyw EXCLUDES = goal_mode.py / chatapp_common.py / tuiapp.py):
-      â¢ reflect/*.py   (not '_'-prefixed, not excluded)
-          â cmd = [python, agentmain.py, --reflect, reflect/<f>]
-      â¢ frontends/*app*.py (not excluded)
-          â 'stapp' â `python -m streamlit run â¦ --server.headless=true`
-            others   â `python frontends/<f>`
+      • reflect/*.py   (not '_'-prefixed, not excluded)
+          → cmd = [python, agentmain.py, --reflect, reflect/<f>]
+      • frontends/*app*.py (not excluded)
+          → 'stapp' → `python -m streamlit run … --server.headless=true`
+            others   → `python frontends/<f>`
 
     Returns [{name, cmd, doc, kind}] where `name` is the hub-style path
     ('reflect/foo.py' / 'frontends/bar.py') and doubles as the picker value.
@@ -383,7 +383,7 @@ def start_service(name: str) -> tuple[bool, str]:
         cand = "reflect/" + name + ".py"
         svc = next((s for s in svcs if s["name"] == cand), None)
     if svc is None:
-        return False, f"æªç¥æå¡: {name}"
+        return False, f"未知服务: {name}"
     try:
         flags = 0
         if os.name == "nt":
@@ -398,30 +398,30 @@ def start_service(name: str) -> tuple[bool, str]:
             close_fds=True,
         )
         # Poll-and-confirm: if the child dies immediately (bad path, import
-        # error, port-in-use, etc) Popen still returns happily â without this
-        # check the picker would tick "â started" while nothing is running,
+        # error, port-in-use, etc) Popen still returns happily — without this
+        # check the picker would tick "✅ started" while nothing is running,
         # which is exactly the bug#4 the user hit.  0.4s is the smallest
         # window that catches "explodes at import" without making the UI
         # feel laggy on healthy starts.
         time.sleep(0.4)
         rc = proc.poll()
         if rc is not None:
-            return False, f"å¯å¨å¤±è´¥ (éåºç  {rc}): {svc['name']}"
+            return False, f"启动失败 (退出码 {rc}): {svc['name']}"
         invalidate_running_cache()
-        return True, f"å·²å¯å¨ {svc['name']} (pid={proc.pid})"
+        return True, f"已启动 {svc['name']} (pid={proc.pid})"
     except Exception as e:
-        return False, f"å¯å¨å¤±è´¥: {type(e).__name__}: {e}"
+        return False, f"启动失败: {type(e).__name__}: {e}"
 
 
 # ----- running-state introspection (bug#4) --------------------------------
 # Why psutil cmdline-scan instead of a launched-by-us pid registry?
-#   â¢ Services launched by a previous TUI run, or by hub.pyw, must also be
-#     recognised â otherwise /scheduler would happily start a duplicate.
-#   â¢ A registry tied to this process dies when the TUI restarts, but the
+#   • Services launched by a previous TUI run, or by hub.pyw, must also be
+#     recognised — otherwise /scheduler would happily start a duplicate.
+#   • A registry tied to this process dies when the TUI restarts, but the
 #     services keep running (CREATE_NEW_PROCESS_GROUP).  Cmdline scan is the
 #     only single source of truth across launchers, surviving restarts.
 # Trade-off: it costs ~30ms per /scheduler open, and matches by cmdline tail,
-# so two checkouts of GA can collide.  We accept that â running two GAs out
+# so two checkouts of GA can collide.  We accept that — running two GAs out
 # of two clones is already an unsupported configuration.
 
 def _match_service(cmdline: list[str], svc: dict) -> bool:
@@ -432,7 +432,7 @@ def _match_service(cmdline: list[str], svc: dict) -> bool:
     Reflect detection used to require BOTH `agentmain.py` AND the reflect
     path in cmdline.  That rejected tasks launched directly (`python
     reflect/scheduler.py`) by launch.pyw, dev scripts, or by an earlier
-    TUI run that used a different launcher â they showed unticked in
+    TUI run that used a different launcher — they showed unticked in
     /scheduler even when alive.  Path-only match handles both styles; the
     Python-process pre-filter in `running_services` keeps false positives
     (greps, editors with the file open) from sneaking in."""
@@ -444,7 +444,7 @@ def _match_service(cmdline: list[str], svc: dict) -> bool:
                for a in cmdline)
 
 
-# 2s TTL cache + name-prefilter: ~2.1s â ~1.0s cold, ~0ms warm.
+# 2s TTL cache + name-prefilter: ~2.1s → ~1.0s cold, ~0ms warm.
 # cmdline() is the per-proc cost; only pay it for python-ish survivors.
 _RUNNING_CACHE: tuple[float, dict[str, int]] | None = None
 _RUNNING_TTL = 2.0
@@ -497,11 +497,11 @@ def stop_service(name: str) -> tuple[bool, str]:
     try:
         import psutil  # type: ignore
     except Exception:
-        return False, "æªå®è£ psutilï¼æ æ³åæ­¢æå¡"
+        return False, "未安装 psutil，无法停止服务"
     running = running_services()
     pid = running.get(name)
     if pid is None:
-        return False, f"{name} æªå¨è¿è¡"
+        return False, f"{name} 未在运行"
     try:
         parent = psutil.Process(pid)
         kids = parent.children(recursive=True)
@@ -517,12 +517,12 @@ def stop_service(name: str) -> tuple[bool, str]:
             except Exception:
                 pass
         invalidate_running_cache()
-        return True, f"å·²åæ­¢ {name} (pid={pid})"
+        return True, f"已停止 {name} (pid={pid})"
     except psutil.NoSuchProcess:
         invalidate_running_cache()
-        return True, f"{name} å·²éåº"
+        return True, f"{name} 已退出"
     except Exception as e:
-        return False, f"åæ­¢å¤±è´¥: {type(e).__name__}: {e}"
+        return False, f"停止失败: {type(e).__name__}: {e}"
 
 
 def list_scheduler_tasks() -> list[dict]:
@@ -559,7 +559,7 @@ def start_reflect_task(name: str) -> tuple[bool, str]:
     """
     script = _ROOT / "reflect" / f"{name}.py"
     if not script.is_file():
-        return False, f"reflect/{name}.py ä¸å­å¨"
+        return False, f"reflect/{name}.py 不存在"
     try:
         flags = 0
         if os.name == "nt":
@@ -573,30 +573,30 @@ def start_reflect_task(name: str) -> tuple[bool, str]:
             stderr=subprocess.DEVNULL,
             close_fds=True,
         )
-        return True, f"å·²å¯å¨ reflect/{name}.py"
+        return True, f"已启动 reflect/{name}.py"
     except Exception as e:
-        return False, f"å¯å¨å¤±è´¥: {type(e).__name__}: {e}"
+        return False, f"启动失败: {type(e).__name__}: {e}"
 
 
 # ----- dispatch table for the TUI to register against ---------------------
 
-# (cmd, arg_hint, desc)  â kept identical between v2 and v3 so the palette
+# (cmd, arg_hint, desc)  — kept identical between v2 and v3 so the palette
 # stays consistent across frontends.
 PALETTE_ENTRIES: list[tuple[str, str, str]] = [
-    ("/update",    "[note]",    "git pull æ´æ° GA ä»åºå¹¶æ¥åå½±åé¢"),
-    ("/autorun",   "[seed]",    "è¿å¥ autonomous_operation èªä¸»æ¨¡å¼"),
-    ("/morphling", "[target]",  "å¯ç¨ Morphling è¸é¦ / åå¬å¤é¨æè½"),
-    ("/goal",      "[goal]",    "è¿å¥ Goal æ¨¡å¼ï¼é condition çº¦æï¼"),
-    ("/hive",      "[target]",  "è¿å¥ Hive å¤ worker åä½æ¨¡å¼"),
-    ("/conductor", "[task]",    "è°ç¨ frontends/conductor.py å¤ subagent ç¼æ"),
-    ("/scheduler", "",          "å¤éå¯å¨/åæ­¢ reflect ä»»å¡ï¼cron ç± reflect/scheduler.py é©±å¨ï¼"),
-    ("/resume",    "",           "ååºæè¿ä¼è¯å¹¶æ¢å¤å¶ä¸­ä¸ä¸ªï¼GA ç«¯å±å¼ promptï¼"),
+    ("/update",    "[note]",    "git pull 更新 GA 仓库并报告影响面"),
+    ("/autorun",   "[seed]",    "进入 autonomous_operation 自主模式"),
+    ("/morphling", "[target]",  "启用 Morphling 蒸馏 / 吞噬外部技能"),
+    ("/goal",      "[goal]",    "进入 Goal 模式（需 condition 约束）"),
+    ("/hive",      "[target]",  "进入 Hive 多 worker 协作模式"),
+    ("/conductor", "[task]",    "调用 frontends/conductor.py 多 subagent 编排"),
+    ("/scheduler", "",          "多选启动/停止 reflect 任务（cron 由 reflect/scheduler.py 驱动）"),
+    ("/resume",    "",           "列出最近会话并恢复其中一个（GA 端展开 prompt）"),
 ]
 
 
 def prompt_for(cmd: str, args_text: str) -> Optional[str]:
     """Return the injected user-message for a given slash command, or None if
-    the command isn't one of ours (e.g. /scheduler â handled by TUI directly).
+    the command isn't one of ours (e.g. /scheduler — handled by TUI directly).
 
     Language is resolved inside the builders that care about it (see
     `_current_lang()`); callers never thread it through, so both TUIs keep a
