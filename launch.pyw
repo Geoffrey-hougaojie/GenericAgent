@@ -119,9 +119,9 @@ if __name__ == '__main__':
         resizable=True, text_select=True)
     webview.start()
 
-# ## 本地补丁: launch_pyw_pythonw_stdout_stderr
+## 本地补丁: launch_pyw_pythonw_stdout_stderr
 
-# /## 本地补丁
+## 本地补丁
 
 WINDOW_WIDTH, WINDOW_HEIGHT, RIGHT_PADDING, TOP_PADDING = 1200, 900, 0, 50
 
@@ -241,7 +241,3 @@ if __name__ == '__main__':
         width=WINDOW_WIDTH, height=WINDOW_HEIGHT, x=x_pos, y=TOP_PADDING,
         resizable=True, text_select=True)
     webview.start()
-
-
-
-

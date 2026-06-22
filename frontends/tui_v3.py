@@ -6049,7 +6049,7 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == '__main__':
     raise SystemExit(main())
 
-                # ## 本地补丁: tui_v3_window_focus_fix — periodic VT/UTF-8 rearm
+## 本地补丁: tui_v3_window_focus_fix — periodic VT/UTF-8 rearm
                 _maint_tick += 1
                 if _maint_tick % 33 == 0:
                     _enable_windows_vt_mode()
@@ -6057,4 +6057,5 @@ if __name__ == '__main__':
                 # /## 本地补丁
                 if self._running and self._asking is None:
 
-
+## 本地补丁
+                if self._running and self._asking is None:
