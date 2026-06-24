@@ -7,16 +7,6 @@ try: sys.stdout.reconfigure(errors='replace')
 except: pass
 try: sys.stderr.reconfigure(errors='replace')
 except: pass
-# ## 本地补丁: stapp_pyw_stdout_stderr
-# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
-# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
-if sys.stdout is None: sys.stdout = open(os.devnull, "w")
-if sys.stderr is None: sys.stderr = open(os.devnull, "w")
-try: sys.stdout.reconfigure(errors='replace')
-except: pass
-try: sys.stderr.reconfigure(errors='replace')
-except: pass
-# /## 本地补丁
 script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(script_dir, '..')))
 sys.path.append(os.path.abspath(script_dir))
@@ -131,7 +121,7 @@ def render_sidebar():
     </style>""", unsafe_allow_html=True)
     def _sync_loop_prompt():
         st.session_state.loop_prompt = st.session_state.loop_prompt_input
-    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)  # ## 本地补丁: stapp_pyw_height_68
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1, on_change=_sync_loop_prompt)
     if st.session_state.get('loop_enabled'):
         if st.button("⏹️ Stop Loop"):
             st.session_state.loop_enabled = False
@@ -386,3 +376,15 @@ def _idle_checker():
         st.session_state['last_reply_time'] = int(time.time())     # 防重入
         st.rerun(scope="app")
 _idle_checker()
+
+# ## 本地补丁: stapp_pyw_stdout_stderr
+# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
+# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
+if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+if sys.stderr is None: sys.stderr = open(os.devnull, "w")
+try: sys.stdout.reconfigure(errors='replace')
+except: pass
+try: sys.stderr.reconfigure(errors='replace')
+except: pass
+# /## 本地补丁
+
