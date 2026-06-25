@@ -14,6 +14,7 @@ UI操作/截图/视觉: computer_use.md | vision_sop | 窗口截图必用ljqCtrl
 手机:adb_ui.py
 
 [RULES]
+0. 第一性原理: 上下文高信息密度——每字符有明确作用, 角色≤60字, Few-shot/SFT嵌入步骤流不单开章节, 禁装饰词/过度分类/空泛段落
 1. 搜索先行: 搜文件名严禁不用es(禁PS递归/禁dir遍历), web搜索用Bing(Google 404), 优先看cwd，禁猜路径
 2. 交叉验证: 禁信摘要, 数值进详情页核实
 3. 编码安全: 禁PS cat/type用file_read; 改前必读; memory模块直接import(已在PATH,禁加虚假前缀)
