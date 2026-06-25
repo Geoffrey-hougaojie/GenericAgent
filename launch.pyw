@@ -1,4 +1,14 @@
 import webview, threading, subprocess, sys, time, os, ctypes, atexit, socket, random
+# ## 本地补丁: launch_pyw_pythonw_stdout_stderr
+# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
+# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
+if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+if sys.stderr is None: sys.stderr = open(os.devnull, "w")
+try: sys.stdout.reconfigure(errors='replace')
+except: pass
+try: sys.stderr.reconfigure(errors='replace')
+except: pass
+# /## 本地补丁
 
 WINDOW_WIDTH, WINDOW_HEIGHT, RIGHT_PADDING, TOP_PADDING = 1200, 900, 0, 50
 
@@ -118,7 +128,3 @@ if __name__ == '__main__':
         width=WINDOW_WIDTH, height=WINDOW_HEIGHT, x=x_pos, y=TOP_PADDING,
         resizable=True, text_select=True)
     webview.start()
-
-# ## 本地补丁: launch_pyw_pythonw_stdout_stderr
-# /## 本地补丁
-
