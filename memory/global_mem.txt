@@ -1,0 +1,90 @@
+# [Global Memory - L2]
+
+## OCR 能力 (验证: 2026-06-19)
+- 引擎: rapidocr-onnxruntime v1.2.3 (onnxruntime 1.27.0)
+- 接口: memory/ocr_utils.py → ocr_image / ocr_screen / ocr_window
+- 返回: dict {text, lines, details[{bbox, text, conf}]}
+- 坑: result[i][2] conf 是 str 不是 float; 无文字时 result 为 None 非空列表
+- 坑: enhance 预处理对清晰文字有害，默认关闭
+- 坑: RDP断开后 ImageGrab 截图全黑，用 ocr_window(hwnd)
+
+## Vision 能力 (验证: 2026-06-19)
+- 后端: ModelScope 免费 API (Qwen3-VL-235B-A22B-Instruct)
+- 接口: memory/vision_api.py → ask_vision(image, prompt, timeout, max_pixels)
+- 默认: backend='modelscope', apibase=https://api-inference.modelscope.cn
+- 实测: 正确识别红蓝双色图，响应 ~3s
+- 前置规则(必读): vision_sop.md → 先枚举窗口、禁全屏截图、能不用就不用
+
+## 飞书 CLI (验证: 2026-06-23, 更新)
+- 工具: lark-cli v1.0.56 @ C:\Users\hgj\AppData\Roaming\npm\lark-cli.cmd
+- run.js: C:\Users\hgj\AppData\Roaming\npm\node_modules\@larksuite\cli\scripts\run.js
+- 配置: identity=user-default, AppID=cli_aaa1281cd2381bcb, 密钥在 mykey.py
+- 🚨 终极方案: node + run.js 直调, shell=False列表传参, 绕过cmd.exe所有特殊字符
+- ✅ 正确: subprocess.run(["node", run_js, "im", "+messages-send", "--as", "bot", "--chat-id", chat_id, "--content", content_json, "--msg-type", "text"], shell=False)
+- ❌ 错误: 任何走lark-cli.cmd的方式都会让cmd.exe解析参数(>|<|&|>>等劫持)
+- ❌ 错误: shell=True 任何形式 (f-string 或 list)
+- ❌ 错误: lark-cli message send 子命令不存在，必须 im +messages-send
+- 输出: 在 stdout（非 stderr），ok:true 表示成功
+- 群聊: oc_c22c4657f3b32a5cead1310224dfd9c8
+- text消息: --content '{"text":"..."}' --msg-type text
+- post富文本: --content '{"zh_cn":{"title":"...","content":[[{"tag":"text","text":"..."}]]}}' --msg-type post
+- interactive卡片: --content '<card_json>' --msg-type interactive (⚠️ 无--card参数,卡片JSON走--content)
+- 文本避坑: 即使 node+shell=False, 若文本含<单双引号>仍可能乱, 用ensure_ascii=False的json.dumps包裹
+- 授权: --no-wait --json 获取 device_code → ASCII 二维码 → 用户扫码 → --device-code 完成
+
+## 浏览器幻觉教训 (2026-06-19)
+- web_execute_js 的 data: URI 图片会被 sanitize，src 变成 __img__，不渲染
+- 对用户声称"已显示"前必须用 web_scan 验证 DOM 中 img src 是真实 URL
+- 二维码等需用户视觉确认的，优先用 ASCII 终端输出（用户直接在对话中看到）
+
+## 浏览器搜索 (验证: 2026-06-23)
+- Google (www.google.com/search) 在本环境返回 404，不可用
+- Bing (cn.bing.com) + setlang=zh-cn 可正常搜索中文内容
+- 搜索策略: 优先 Bing，中文内容加 setlang=zh-cn 参数
+
+## GitHub Upstream 同步 (验证: 2026-06-20)
+- upstream: https://github.com/lsdefine/GenericAgent.git (main)
+- origin/fork: https://github.com/Geoffrey-hougaojie/GenericAgent.git
+- 定时任务: sche_tasks/upstream_sync.json (每日 20:00)
+- SOP: memory/upstream_sync_sop.md (浏览器桥接方案)
+- 坑: hosts屏蔽GitHub→127.0.0.1，浏览器代理独立通道可用，git不通
+- 本地保护文件(10个,upstream不存在): mykey.py, global_mem.txt, global_mem_insight.txt, file_access_stats.json, upstream_sync_sop.md, wechat_send_sop.md, vision_api.py, sche_tasks/upstream_sync.json, assets/tmwd_cdp_bridge/config.js, assets/tool_usable_history.json
+- 四层记忆: L1/L2本地独有→安全; L0/L3/L4与upstream共有→SHA匹配时不覆盖, SHA不同时走##本地补丁合并(见SOP#8)
+
+## 沙箱输入过滤 (验证: 2026-06-21)
+- mouse_event(MOUSEEVENTF_WHEEL) 和 SendInput 滚轮事件被本沙箱静默过滤：API返回成功但页面不滚动
+- ✅ PostMessage(WM_MOUSEWHEEL) → Chrome_RenderWidgetHostHWND 绕过过滤，滚动成功
+- 详参 tmwebdriver_sop "物理滚轮" 章节
+
+## 用户消息偏好 (验证: 2026-06-24)
+- 聊天回复中展示列表/日程/时间线等结构化信息时，用项目符号（-），严禁用代码块（```）
+- 代码块在飞书客户端会折叠行，用户体验差，要点进去才能看全
+- 飞书定时任务推送保持 interactive card 不变
+
+## Everything 搜索 (验证: 2026-06-19)
+- es.exe v1.1.0.27 @ C:\Tools\Everything\（PATH 已设，新会话生效）
+- Everything GUI @ C:\Program Files\Everything\Everything.exe
+- 坑: es 依赖 Everything GUI 的 IPC 窗口，仅服务运行不够，需启动 GUI（托盘图标）
+- 服务 Everything（AUTO_START）用 -svc 参数，只索引不提供 IPC
+- 用法: es -n <数量> <关键词>，秒级返回全盘搜索结果
+- 自动启动模式: 先调 es 一次，若 stderr 含 "IPC window not found" 则 Popen(Everything.exe) 等 2s 重试
+
+## Hook 插件系统 (验证: 2026-06-25)
+- 8个生命周期hook点: agent_before, agent_after, tool_before, tool_after, on_error, on_parse, on_llm, on_commit
+- 加载机制: ga.py discover_and_load() 启动时自动扫描 plugins/*.py，按hook点注册
+- 现有插件: safety_guard.py(tool_before拦截危险操作→空操作+日志), tool_metrics.py(agent_before计时+agent_after落盘temp/tool_metrics.json)
+- 坑: plugin函数签名必须严格匹配hook点注册名; GA重启后重新加载，新插件立即可用无需改ga.py
+
+## 自进化四层框架 (验证: 2026-06-25)
+- L1-数据源: arxiv_research_daily(14:00)+agent_source_reading(15:00)+claude_code_log_analyze(17:00)+mcp_agent_analyze(18:00)
+- L2-提示优化: prompt_optimize_daily(02:00) 从learning_queue.json读优化建议, DPO对比改写
+- L3-自省: self_reflection_daily(21:00) 读tool_metrics+飞书日志→写learning_queue+飞书推送日报
+- L4-记忆: memory_cleanup(03:00) GC去重压缩, 防L2/L3无限膨胀
+
+## 调度器 (验证: 2026-06-25)
+- 守护进程: cron_daemon.py 随launch.pyw启动, 独立PID
+- 任务目录: sche_tasks/*.json (14个定时任务)
+- 核心字段: schedule(cron), enabled, prompt, delay_hours(错过窗口max延迟), feishu_push
+- 错过策略: schedule到达→delay_hours窗口→超时SKIP并记录; 验证粒度为分钟级
+- 任务间数据流: learning_queue.json(学习队列) + memory/prompt_modules/(提示模块) + temp/tool_metrics.json(工具统计)
+- 角色定位规范: 所有任务prompt首行必须"你是 [身份]——[一个破折号说清核心职责]", ≤60字

@@ -1,0 +1,26 @@
+# [Global Memory Insight]
+需要时read L2 或 ls ../memory/ 查L3
+L0(META-SOP): memory_management_sop
+L2: OCR配置 | Vision配置 | 飞书配置 | 飞书CLI | 用户消息偏好 | Everything搜索 | 浏览器幻觉 | 浏览器搜索 | Hook插件 | 自进化四层 | 调度器
+L3: memory_cleanup_sop | ui_detect.py | ocr_utils.py | subagent | web_setup_sop | plan_sop | task_prompt_design_sop 
+| procmem_scanner | procmem_scanner_sop | keychain | ljqCtrl_sop+.py | macljqCtrl | tmwebdriver_sop | douyin_sop | autonomous_operation_sop | scheduled_task_sop | vision_sop | vision_api | adb_ui.py | wechat_send_sop
+| checklist_sop | code_review_principles | github_contribution_sop | goal_hive_sop | goal_mode_sop | incubator_sop | morphling_sop | project_mode_sop | review_sop | supervisor_sop | upstream_sync_sop | verify_sop | vue3_component_sop | safety_guard | tool_metrics
+L4: L4_raw_sessions/ 历史会话(compress_session/salient_mining_sop)
+
+浏览器特殊操作: tmwebdriver_sop(文件上传/图搜/PDF blob/物理坐标/HttpOnly Cookie/autofill突破/跨域iframe/CDP/跨tab)
+键鼠: ljqCtrl_sop(禁pyautogui/先activate)
+UI操作/截图/视觉: computer_use.md | vision_sop | 窗口截图必用ljqCtrl
+定时:scheduled_task_sop | 自主:autonomous_operation_sop | watchdog/反射:agentmain --reflect
+手机:adb_ui.py
+
+[RULES]
+1. 搜索先行: 搜文件名严禁不用es(禁PS递归/禁dir遍历), web搜索用Bing(Google 404), 优先看cwd，禁猜路径
+2. 交叉验证: 禁信摘要, 数值进详情页核实
+3. 编码安全: 禁PS cat/type用file_read; 改前必读; memory模块直接import(已在PATH,禁加虚假前缀)
+4. 闭环: 物理模拟后确认; 3次失败请求干预; Git完整闭环
+5. 进程: 禁无条件杀python(杀自己), 精确PID, 禁os.kill判活
+6. 窗口: GUI状态优先win32gui枚举标题
+7. web JS: 输入用原生setter+事件链, 点击前检disabled, 注意引号转义; scan空/不全先稍等再scan, 禁首扫定论
+8. SOP: 读SOP禁凭印象,有utils必用 | 复杂超长程任务/用户明确提及规划模式→读plan_sop
+9. 环境变量: 改Machine PATH禁setx(静默截断1024字符不报错)，用PS [Environment]::SetEnvironmentVariable
+10. 记忆同步: 架构/能力变更后必同步L2(新事实)+L1(索引+文件); 变更完成≠任务终点, 记忆落盘才算闭环

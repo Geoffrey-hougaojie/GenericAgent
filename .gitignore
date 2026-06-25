@@ -102,6 +102,8 @@ memory/L4_raw_sessions/*
 !memory/vision_api.template.py
 
 # Memory management
+!memory/global_mem.txt
+!memory/global_mem_insight.txt
 !memory/memory_cleanup_sop.md
 
 # Checklist/MapReduce
