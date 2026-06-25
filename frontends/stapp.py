@@ -121,7 +121,7 @@ def render_sidebar():
     </style>""", unsafe_allow_html=True)
     def _sync_loop_prompt():
         st.session_state.loop_prompt = st.session_state.loop_prompt_input
-    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)  # ## 本地补丁: stapp_pyw_height_68
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1, on_change=_sync_loop_prompt)
     if st.session_state.get('loop_enabled'):
         if st.button("⏹️ Stop Loop"):
             st.session_state.loop_enabled = False
@@ -377,14 +377,37 @@ def _idle_checker():
         st.rerun(scope="app")
 _idle_checker()
 
+    loop_prompt = st.text_area("Loop prompt", value=st.session_state.get('loop_prompt', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68, on_change=_sync_loop_prompt)  # ## 本地补丁: stapp_pyw_height_68
+    if st.session_state.get('loop_enabled'):
+        if st.button("⏹️ Stop Loop"):
+            st.session_state.loop_enabled = False
+            st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
+        st.caption("🔁 Looping")
+    else:
+        if st.button("🔁 Loop!"):
+            st.session_state.loop_enabled = True
+            st.session_state.loop_prompt = loop_prompt
+            st.session_state['_inject_prompt'] = loop_prompt
+            st.toast("🔁 Looping"); st.rerun(scope="app")
+    st.divider()
+    if st.button(T('auto_start')):
+        st.session_state.last_reply_time = int(time.time()) - 1800
+        st.session_state.autonomous_enabled = True
+        st.rerun(scope="app")
+    if st.session_state.autonomous_enabled:
+        if st.button(T('auto_pause')):
+            st.session_state.autonomous_enabled = False
+            st.toast(T('auto_pause')); st.rerun(scope="app")
+        st.caption(T('auto_on_cap'))
+    else:
+        if st.button(T('auto_enable'), type="primary"):
+            st.session_state.autonomous_enabled = True
+            st.toast("✅"); st.rerun(scope="app")
+        st.caption(T('auto_off_cap'))
+with st.sidebar: render_sidebar()
+
+def fold_turns(text):
+    """Return list of segments: [{'type':'text','content':...}, {'type':'fold','title':...,'content':...}]"""
 # ## 本地补丁: stapp_pyw_stdout_stderr
-# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
-# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
-if sys.stdout is None: sys.stdout = open(os.devnull, "w")
-if sys.stderr is None: sys.stderr = open(os.devnull, "w")
-try: sys.stdout.reconfigure(errors='replace')
-except: pass
-try: sys.stderr.reconfigure(errors='replace')
-except: pass
 # /## 本地补丁
 
