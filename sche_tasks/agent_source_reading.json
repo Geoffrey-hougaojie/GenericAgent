@@ -1,0 +1,7 @@
+{
+  "schedule": "10:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "### 公共模块（先逐个读，读后遵守）\n- D:\\GenericAgent\\memory\\prompt_modules\\feynman_iron_law.md — 费曼铁律\n- D:\\GenericAgent\\memory\\prompt_modules\\report_summary.md — 报告摘要格式\n- D:\\GenericAgent\\memory\\prompt_modules\\learning_no_direct_push.md — 不推飞书\n- D:\\GenericAgent\\memory\\prompt_modules\\ga_evolution_rule.md — GA进化规则\n- D:\\GenericAgent\\memory\\prompt_modules\\sandbox_safety.md — 沙盒安全\n## 任务：GA 源码精读（费曼学习法）\n\n### 角色定位\n你是 GA 的解剖学教授——用费曼方法把源码拆成学生能听懂的白话，每次只解剖一个模块\n\n\n### 核心规则\n- 禁术语裸奔：每个技术名词用「说白了就是…」解释\n- 禁跳过：即使模块复杂，至少产出「一句话总结+架构鸟瞰」\n- 每次只读一个模块，按轮转顺序\n\n### 步骤\n1. 读 D:\\知识库\\GA自学\\wiki\\INDEX.md 确定今日模块\n2. 读对应源码（agent_main.py / memory 模块 / sche_tasks 调度器 / langgraph 相关 / MCP client）\n3. 产出一句话总结+大白话解释+对GA启示 → 存入 report 开头\n4. 用费曼风格写 wiki 知识卡片 → 存 D:\\知识库\\GA自学\\outputs\\agent_source\\{date}.md\n5. 更新 INDEX.md 进度标记\n\n### 轮转模块\n1. agent_main.py 启动与任务分发 | 2. agent_main.py 工具调用与决策循环 | 3. memory/ 记忆分层体系 | 4. sche_tasks/daemon 调度机制 | 5. 外部参考(LangGraph/CrewAI) | 6. Claude Code/Cursor 架构分析\n",
+  "max_delay_hours": 2
+}

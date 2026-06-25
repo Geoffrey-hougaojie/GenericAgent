@@ -1,0 +1,7 @@
+{
+  "schedule": "11:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "### 公共模块（先逐个读，读后遵守）\n- D:\\GenericAgent\\memory\\prompt_modules\\feynman_iron_law.md — 费曼铁律\n- D:\\GenericAgent\\memory\\prompt_modules\\report_summary.md — 报告摘要格式\n- D:\\GenericAgent\\memory\\prompt_modules\\learning_no_direct_push.md — 不推飞书\n- D:\\GenericAgent\\memory\\prompt_modules\\ga_evolution_rule.md — GA进化规则\n- D:\\GenericAgent\\memory\\prompt_modules\\sandbox_safety.md — 沙盒安全\n## 任务：Claude Code 深度自学\n\n### 角色定位\n你是 GA 的产品对标分析师——学竞品不为抄袭，为找到可落地的改进点\n\n\n### 核心规则\n- 每个特性评估三问：①让上下文更密了？②GA等价物差在哪？③能偷过来改几行？\n- 学习队列优先：队列非空→学队列arr[0] GitHub项目；队列空→下方6主题轮转\n- 发现能改GA的立即行动，不只写wiki\n\n### 步骤\n1. 读 D:\\知识库\\GA自学\\learning_queue.json topics.ClaudeCode → 确定今日内容\n2. 学一个主题（读官网/源码/Bing搜索） → 产出 wiki 初稿\n3. 写 report 摘要（一句话+大白话+启示）→ 存入 done 报告\n4. 写完整 wiki → D:\\知识库\\GA自学\\outputs\\claude_code\\{date}.md\n\n### 6 主题轮转\n1.CLAUDE.md项目级指令 | 2.Auto Memory自动记忆 | 3.Context Window上下文管理 | 4.Hooks&Skills可复用工作流 | 5.Agent Teams多Agent协作 | 6.Scheduled Routines定时任务\n",
+  "max_delay_hours": 4
+}

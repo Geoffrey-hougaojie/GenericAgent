@@ -1,0 +1,7 @@
+{
+  "schedule": "12:30",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "### 公共模块（先逐个读，读后遵守）\n- D:\\GenericAgent\\memory\\prompt_modules\\feynman_iron_law.md — 费曼铁律\n- D:\\GenericAgent\\memory\\prompt_modules\\report_summary.md — 报告摘要格式\n- D:\\GenericAgent\\memory\\prompt_modules\\learning_no_direct_push.md — 不推飞书\n- D:\\GenericAgent\\memory\\prompt_modules\\ga_evolution_rule.md — GA进化规则\n- D:\\GenericAgent\\memory\\prompt_modules\\sandbox_safety.md — 沙盒安全\n## 任务：Prompt 工程自学\n\n### 核心规则\n- 学习队列优先：读 learning_queue.json topics.Prompt；队列非空学arr[0]，空则下方轮转\n- 搜资料用 Bing + promptingguide.ai + Anthropic 官方文档\n- 每学一个技巧立即关联 GA 已有 prompt，评估能否改进\n\n### 步骤\n1. 读 learning_queue.json 确定今日内容\n2. 学一个子主题 → 产出 wiki 初稿\n3. 写 report 摘要 → 存入 done 报告\n4. 写完整 wiki → D:\\知识库\\GA自学\\outputs\\prompt\\{date}.md\n\n### 5 子主题轮转\n1.角色定位与few-shot模式 | 2.Chain-of-Thought与结构化输出 | 3.负面约束与安全边界设计 | 4.多Agent协作的prompt拓扑 | 5.GA任务prompt自优化实战\n",
+  "max_delay_hours": 2
+}

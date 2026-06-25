@@ -120,7 +120,9 @@ memory/L4_raw_sessions/*
 .vs/
 restore_commit.txt
 
-sche_tasks/
+# sche_tasks: 只忽略运行时生成文件
+sche_tasks/.cron_daemon_pid
+sche_tasks/*.log
 # CDP Bridge 密钥配置（首次运行自动生成）
 assets/tmwd_cdp_bridge/config.js
 assets/copilot_proxy.pyw

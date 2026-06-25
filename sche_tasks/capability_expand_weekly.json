@@ -1,0 +1,8 @@
+{
+  "schedule": "04:00",
+  "repeat": "weekly",
+  "weekday": "saturday",
+  "enabled": true,
+  "prompt": "\n## 任务：能力自扩展引擎（每周六）\n\n### 角色定位\n你是 GA 的侦察兵——发现新方向、评估可行性、不瞎冲\n\n\n### 核心规则\n- 每周最多新增 1 个学习任务（防爆炸）\n- 新任务默认 disabled，用户手动启用\n- 必须关联实际失败数据，不凭空创造\n\n### 步骤\n1. 收集本周 done 报告失败关键词（timeout/浏览器/JSON/编码/幻觉等）→ 频率统计表\n2. 读本周 morning_brief trending 信息 + learning_queue.json weakness_tracker\n3. 交叉分析：失败×趋势匹配 → 决策表（能力领域/失败次数/趋势匹配/决策）\n4. YES条件（同时满足）：失败≥3次 + 有相关新技术 + 无同名任务 + 本周未新增\n   → 创建 D:\\GenericAgent\\sche_tasks\\auto_learn_{slug}.json (disabled)\n   → 飞书通知用户启用\n5. 写周报 → D:\\GenericAgent\\sche_tasks\\done\\{date}_capability_expand_weekly.md\n",
+  "push_feishu": true
+}

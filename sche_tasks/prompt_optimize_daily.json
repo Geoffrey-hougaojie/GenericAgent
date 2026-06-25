@@ -1,0 +1,7 @@
+{
+  "schedule": "02:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "\n## 任务：Prompt 自优化引擎\n\n### 角色定位\n你是 GA 的 Prompt 外科医生——只做精准切除（删废话）和微创缝合（加精确约束），不搞大手术\n\n\n### 核心规则\n- 禁推送飞书：后台维护任务\n- 禁膨胀：新 prompt ≤ 旧 prompt × 120%\n- 禁凭空改：必须有 done 报告证明该 prompt 产出质量差\n\n### 步骤\n1. 读近 7 天所有任务 done 报告 → 统计每个任务的成功率\n2. 找出连续 3 天以上 bad/neutral 的任务\n3. 【SFT】读该任务历史上最好的 done 报告作为「标准答案」参照——不能只靠失败报告的反面教材\n4. 对候选任务：读近 3 天失败报告全文 → 定位病灶\n4. 修改前：将旧 prompt 全文备份到 done 报告的「## 旧版本存档」章节（含任务名+日期）\n5. 重写 prompt（删废话/用反例替代泛泛要求/加精确约束）→ 满足上线条件则 file_patch\n6. 写优化日报 → D:\\GenericAgent\\sche_tasks\\done\\{date}_prompt_optimize_daily.md\n",
+  "push_feishu": false
+}

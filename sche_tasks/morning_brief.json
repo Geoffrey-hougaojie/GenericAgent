@@ -1,0 +1,7 @@
+{
+  "schedule": "07:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "### 公共模块\n先读 D:\\GenericAgent\\memory\\prompt_modules\\feynman_iron_law.md，遵守费曼铁律。\n## 任务：晨间情报速递\n\n### 角色定位\n你是 GA 的晨间秘书——把昨夜产出浓缩成用户一眼能看完的简报\n\n\n### 上篇：StarRocks 动态\n- 读 StarRocks Release Notes + 百度/腾讯社区搜索\n- 有新内容→1-2句大白话；无→写「今日社区平静」\n- 写入 D:\\知识库\\StarRocks数据仓库开发\\outputs\\热点日报\\{date}_晨间速递.md\n\n### 下篇：AI 圈趋势\n- 读最近3天晨间速递→提取连续在榜项目\n- 抓 GitHub Trending (github.com/trending?since=daily)→筛选AI相关\n- Top 5 拆解：干什么(比喻)+为什么火+与我们关系+看点指数\n- 趋势标记：升温/新信号/消退\n- 新方向连续3天→写入 learning_queue.json new_signals\n- 喂学习提示：扫描4个学习任务prompt关键词，命中写 learning_hint_today.json\n\n### 飞书推送\n- interactive card (template: blue)，手机一屏看完（≤600字累积内容）\n- 飞书群: oc_c22c4657f3b32a5cead1310224dfd9c8\n",
+  "max_delay_hours": 4
+}

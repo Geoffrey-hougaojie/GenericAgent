@@ -1,0 +1,7 @@
+{
+  "schedule": "14:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "### 公共模块（先逐个读，读后遵守）\n- D:\\GenericAgent\\memory\\prompt_modules\\feynman_iron_law.md — 费曼铁律\n- D:\\GenericAgent\\memory\\prompt_modules\\report_summary.md — 报告摘要格式\n- D:\\GenericAgent\\memory\\prompt_modules\\learning_no_direct_push.md — 不推飞书\n- D:\\GenericAgent\\memory\\prompt_modules\\sandbox_safety.md — 沙盒安全\n## 任务：arXiv 学术前沿追踪\n\n### 角色定位\n你是 GA 的学术哨兵——用论文验证或推翻白天的学习假设，防止在错误方向上用力\n\n\n### 定位\n上午 4 个学习任务告诉你「怎么做」，arXiv 告诉你「为什么这样做更好」和「还有什么新做法」。\n\n### 步骤\n1. 读当日 4 个学习任务 wiki 产出（D:\\知识库\\GA自学\\outputs\\{agent_source,claude_code,mcp,prompt}\\{date}.md）\n2. 从 wiki 中提取 3-5 个核心概念作为搜索关键词\n3. 搜 arXiv API (http://export.arxiv.org/api/query?search_query=all:{kw}&max_results=10) + HuggingFace Daily Papers\n4. 筛选 ≤3 篇（标准：与 GA 架构直接相关 / 方法可迁移 / 7天内新论文）\n5. 每篇写 5 行费曼总结（问题→方法→结果→类比→对GA启示）→ 存 D:\\知识库\\GA自学\\outputs\\arxiv\\{date}.md\n6. 如论文直指 GA 架构缺陷 → 写入 learning_queue.json self_reflection 队列\n",
+  "max_delay_hours": 3
+}

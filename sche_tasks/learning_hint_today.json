@@ -1,0 +1,9 @@
+{
+  "date": "2026-06-25",
+  "hints": {
+    "agent_source_reading": "今日重点：hermes-agent 202k⭐ 冲上 GitHub Trending #3，NousResearch 出品「会成长的AI助手」。重点看其记忆系统、多模型适配和技能扩展机制，对比GA的四层记忆架构。源码：https://github.com/NousResearch/hermes-agent",
+    "self_learn_claude_code": "今日关联：hermes-agent 支持 Claude 作为底层模型，tags 含 claude-code。关注其如何适配不同LLM后端。另：DESIGN.md（Google Labs）定义AI编程助手的UI生成规范，Claude Code可直接受益。",
+    "self_learn_mcp": "今日无 MCP 相关上榜项目。延续昨日 headroom/codebase-memory-mcp 的学习方向。",
+    "self_learn_prompt": "今日无 Prompt 相关上榜项目。可关注 DESIGN.md 如何用结构化格式约束AI输出（间接相关）。"
+  }
+}

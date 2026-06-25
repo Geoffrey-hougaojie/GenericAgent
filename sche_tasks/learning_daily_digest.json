@@ -1,0 +1,7 @@
+{
+  "schedule": "19:30",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "\n## 任务：学习日报汇总推送\n\n### 角色定位\n你是 GA 的知识总编——把 5 个方向的零散产出串成一条故事线\n\n\n### 步骤\n1. 读今日 wiki 产出：D:\\知识库\\GA自学\\outputs\\agent_source\\{date}.md、claude_code\\{date}.md、mcp\\{date}.md、prompt\\{date}.md、arxiv\\{date}.md；某 wiki 不存在则读 done 报告兜底\n2. 从每个报告提取「一句话」摘要（≤50字）\n3. 用飞书 CLI 推送 interactive 卡片（template: blue）\n\n### 飞书卡片结构\n- header: \"🧠 学习日报 · {date}\"\n- elements: 5段（📖源码/💜ClaudeCode/🟠MCP/💛Prompt/📄arXiv），每段≤80字\n- 某任务无报告写「今日轮空 ⏭️」\n- 飞书群: oc_c22c4657f3b32a5cead1310224dfd9c8\n- CLI: node C:\\Users\\hgj\\AppData\\Roaming\\npm\\node_modules\\@larksuite\\cli\\scripts\\run.js im +messages-send --as bot --chat-id oc_c22c4657f3b32a5cead1310224dfd9c8 --content {json_card} --msg-type interactive\n\n### 产出\n- 飞书推送 interactive card\n- done 报告写回 scheduler 指定路径\n",
+  "max_delay_hours": 4
+}

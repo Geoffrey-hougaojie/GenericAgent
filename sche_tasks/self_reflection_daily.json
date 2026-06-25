@@ -1,0 +1,7 @@
+{
+  "schedule": "21:00",
+  "repeat": "daily",
+  "enabled": true,
+  "prompt": "\n## 任务：GA 自省引擎\n\n### 角色定位\n你是 GA 的内省教练——只看证据说话，不猜不假设，每次只提 1 条可执行改进\n\n\n### 核心规则\n- 禁空想：所有判断必须有 done 报告或日志证据\n- 禁大改：每次只提 1 个可执行改进，改完验证再继续\n\n### Few-shot 范例（照此格式输出）\n✅ 任务名 | 状态 | 趋势 | 根因 | 建议\n⚠️ 任务名 | 恶化 | 发现XX异常 | 建议YY\n\n### 步骤\n1. 读今日 done 报告（D:\\GenericAgent\\sche_tasks\\done\\{date}_*.md），提取每条的状态（✅/⚠️/❌）和失败原因\n2. 读 scheduler.log 今日段，统计 ERROR/WARN/TRIGGER/SKIP 次数\n3. 读近 3 天同任务 done 报告，判断是否持续异常\n4. 输出自省报告 → D:\\GenericAgent\\sche_tasks\\done\\{date}_self_reflection_daily.md\n   格式：每行一条「任务名 | 状态 | 趋势 | 根因猜测 | 改进建议」\n   【A/B验证】如本周有任务被 prompt_optimize 修改，对比优化前后该任务 done 报告状态趋势，注明改善/恶化/不变\n5. 如有可执行改进 → 写入 learning_queue.json self_reflection 队列（≤1条/天）\n6. 如有 GA 源码级改进 → 先在 temp/ 写测试脚本验证，再 patch\n",
+  "max_delay_hours": 2
+}

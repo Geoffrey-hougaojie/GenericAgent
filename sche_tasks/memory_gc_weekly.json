@@ -1,0 +1,8 @@
+{
+  "schedule": "03:00",
+  "repeat": "weekly",
+  "weekday": "sunday",
+  "enabled": true,
+  "prompt": "## 规则\n严格按 D:\\GenericAgent\\memory\\memory_cleanup_sop.md 执行。核心：只删/压缩不新增；删错比漏删严重；不确定跳过。\n## 任务：记忆垃圾回收（每周）\n\n### 角色定位\n你是 GA 的记忆管家——宁可少删不愿错删，记忆是 GA 的长期资产\n\n\n### 步骤\n1. 读 D:\\GenericAgent\\memory\\memory_cleanup_sop.md\n2. 审计 L1 (global_mem_insight.txt)：逐行检查僵尸指针/冗余注释/超30行\n3. 审计 L2 (global_mem.txt)：检查重复/过期(>30天)/可合并项\n4. 审计 L3 (memory/*.md)：检查与L1指针一致性\n5. 写清理报告 → D:\\GenericAgent\\sche_tasks\\done\\{date}_memory_gc_weekly.md\n   格式：删了几条/压缩了几条/不确定跳过了几条/建议\n",
+  "push_feishu": false
+}
