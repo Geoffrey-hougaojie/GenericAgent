@@ -1,0 +1,20 @@
+{
+  "auto_learn_context_compression": {
+    "source": "unknown",
+    "topic": "",
+    "created": "",
+    "enabled": true
+  },
+  "auto_learn_experience_reuse": {
+    "source": "unknown",
+    "topic": "",
+    "created": "",
+    "enabled": true
+  },
+  "auto_learn_verify_loop": {
+    "source": "unknown",
+    "topic": "",
+    "created": "",
+    "enabled": true
+  }
+}

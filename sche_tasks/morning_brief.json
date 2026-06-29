@@ -1,0 +1,7 @@
+{
+  "schedule": "07:00",
+  "repeat": "daily",
+  "enabled": true,
+  "max_delay_hours": 3,
+  "prompt": "执行每日晨间速递：\n\n## 数据采集（多源fallback）\n1. StarRocks: 搜索官方Release Notes + Bing「StarRocks 2026年6月」→提取最新版本和社区动态\n2. AI圈趋势: GitHub API `created:>=近3天` 按stars排序 → 若API限流则用Bing搜索「AI开源项目 今天」→ 配合近3天晨报趋势连续性补全\n3. 备选: Hacker News (若超时跳过) + Bing AI新闻搜索\n\n## 报告生成\n4. 写入 `D:\\知识库\\StarRocks数据仓库开发\\outputs\\热点日报\\YYYY-MM-DD_晨间速递.md`\n   - 结构: 今天一句话 → StarRocks动态 → Top 5拆解(每个≥3句费曼解释+≥2生活类比) → 趋势追踪表\n5. 费曼自查: 术语裸奔检查(每个专业词配「说白了就是…」) / 全文≥12个非代码类比 / 我妈检查(≥85%能听懂) / 无空洞表述\n\n## 推送\n6. 飞书推送: 群 oc_c22c4657f3b32a5cead1310224dfd9c8 → interactive卡片(template:blue) → 约1000字摘要\n\n## 学习入库\n7. 若有新AI趋势信号, 写入 learning_queue.json (self_reflection key下的数组append)\n\n## 失败处理\n数据源失败不阻塞, 记录到报告「遇到的问题」表格, 用fallback继续"
+}
