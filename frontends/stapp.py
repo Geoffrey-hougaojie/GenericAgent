@@ -7,6 +7,16 @@ try: sys.stdout.reconfigure(errors='replace')
 except: pass
 try: sys.stderr.reconfigure(errors='replace')
 except: pass
+# ## 本地补丁: stapp_pyw_stdout_stderr
+# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
+# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
+if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+if sys.stderr is None: sys.stderr = open(os.devnull, "w")
+try: sys.stdout.reconfigure(errors='replace')
+except: pass
+try: sys.stderr.reconfigure(errors='replace')
+except: pass
+# /## 本地补丁
 script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(script_dir, '..')))
 sys.path.append(os.path.abspath(script_dir))
@@ -20,7 +30,7 @@ from continue_cmd import handle_frontend_command, reset_conversation, list_sessi
 from btw_cmd import handle_frontend_command as btw_handle_frontend
 from export_cmd import last_assistant_text, export_to_temp, wrap_for_clipboard
 
-st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -106,9 +116,9 @@ def render_sidebar():
     selected_idx = st.selectbox("LLM", [idx for idx, _, _ in llm_options], index=next((i for i, (idx, _, _) in enumerate(llm_options) if idx == current_idx), 0), format_func=llm_labels.get, label_visibility="collapsed", key="sidebar_llm_select")
     if selected_idx != current_idx:
         agent.next_llm(selected_idx); st.rerun(scope="fragment")
-    if st.button(T('force_stop')):
+    if st.button(T('force_stop'), key='main_force_stop'):
         agent.abort(); st.toast("Stop signal sended"); st.rerun()
-    if st.button(T('desktop_pet')):
+    if st.button(T('desktop_pet'), key='main_desktop_pet'):
         kwargs = {'creationflags': 0x08} if sys.platform == 'win32' else {}
         pet_script = os.path.join(script_dir, 'desktop_pet_v2.pyw')
         if not os.path.exists(pet_script):
@@ -131,7 +141,7 @@ def render_sidebar():
         agent._turn_end_hooks['pet'] = _pet_hook
         st.toast("Desktop pet started")
     
-    if st.button(T('suggest_btn')):
+    if st.button(T('suggest_btn'), key='main_suggest_btn'):
         st.session_state['_inject_prompt'] = T('suggest_prompt')
         st.rerun(scope="app")
     st.divider()
@@ -140,30 +150,30 @@ def render_sidebar():
         field-sizing: content; min-height: 1.6em !important; height: auto !important;
     }
     </style>""", unsafe_allow_html=True)
-    st.text_area("Loop prompt", value=st.session_state.get('loop_prompt_input', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1)
+    st.text_area("Loop prompt", value=st.session_state.get('loop_prompt_input', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68)  # ## 本地补丁: stapp_pyw_height_68
     if st.session_state.get('loop_enabled'):
-        if st.button("⏹️ Stop Loop"):
+        if st.button("⏹️ Stop Loop", key="sidebar_stop_loop"):
             st.session_state.loop_enabled = False
             st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
         st.caption("🔁 Looping")
     else:
-        if st.button("🔁 Loop!"):
+        if st.button("🔁 Loop!", key="sidebar_loop"):
             st.session_state.loop_enabled = True
             get_controller()
             st.session_state['_inject_prompt'] = st.session_state.get('loop_prompt_input', '')
             st.toast("🔁 Looping"); st.rerun(scope="app")
     st.divider()
-    if st.button(T('auto_start')):
+    if st.button(T('auto_start'), key='sidebar_auto_start'):
         st.session_state.last_reply_time = int(time.time()) - 1800
         st.session_state.autonomous_enabled = True
         st.rerun(scope="app")
     if st.session_state.autonomous_enabled:
-        if st.button(T('auto_pause')):
+        if st.button(T('auto_pause'), key='sidebar_auto_pause'):
             st.session_state.autonomous_enabled = False
             st.toast(T('auto_pause')); st.rerun(scope="app")
         st.caption(T('auto_on_cap'))
     else:
-        if st.button(T('auto_enable'), type="primary"):
+        if st.button(T('auto_enable'), type="primary", key='sidebar_auto_enable'):
             st.session_state.autonomous_enabled = True
             st.toast("✅"); st.rerun(scope="app")
         st.caption(T('auto_off_cap'))

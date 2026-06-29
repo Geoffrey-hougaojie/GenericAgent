@@ -43,6 +43,12 @@ ljqCtrl.Click(ox + (bbox[0]+bbox[2])//2, oy + (bbox[1]+bbox[3])//2)
 - **⚠️ Click 后 0% 像素变化 = 点歪了**：ljqCtrl.Click 会报告像素变化百分比。若为 0% 或接近 0%，说明点击落在了错误位置（坐标计算有误），必须立即停下来诊断坐标转换逻辑，禁止盲目重试。常见原因：用了错误的窗口原点API、忘记 `/dpi_scale`、混淆了客户区与窗口矩形。macOS 上多为忘加裁剪原点（应走 `CropToScreen`）。
 - **⚠️ win32 DPI 坐标陷阱**：未调用 `SetProcessDPIAware()` 时，`GetWindowRect/ClientToScreen/GetClientRect` 等拿到的窗口/客户区坐标通常是**逻辑坐标**，必须进行换算！
 - **文本输入**：ljqCtrl 无 TypeText/SendKeys。向输入框键入文本：先点击/三击选中字段，再 `pyperclip.copy('文本'); ljqCtrl.Press('ctrl+v')`。
+- **⚠️ Press 键盘输入前置条件**：`ljqCtrl.Press` 发送的是全局按键，必须先用 `win32gui.SetForegroundWindow(hwnd)` 激活目标窗口并确认前台，否则按键会落到错误窗口。Press 后截图+OCR 验证输入是否生效，禁止假设成功。
+
+
+## 本地补丁
+> 以下修改为本地定制，不受 upstream sync 覆盖。如需重放：`python memory/patches/reapply_three_fixes.py`
+- **2026-06-21**: 新增 Press 键盘输入前置条件（SetForegroundWindow 激活窗口），详见避坑指南。
 
 ## 5. macOS：OCR/vision 认不准图标时，用辅助功能 API 枚举真实控件（强烈推荐）
 > **两条通路**：①`macljqCtrl.py` 已封装原生 pyobjc AX API（首选，免 shell）：`AXElements(pid或bundle_id或app名)` 枚举控件树(带 role/desc/title/id/value/**enabled**/物理坐标)，`AXFind(...,enabled_only=)` 过滤，`AXClick(node)` = AXPress 优先失败回退物理坐标 Click。②无 pyobjc 时回退下述 osascript 方案。
