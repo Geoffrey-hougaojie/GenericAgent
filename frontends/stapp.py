@@ -7,6 +7,16 @@ try: sys.stdout.reconfigure(errors='replace')
 except: pass
 try: sys.stderr.reconfigure(errors='replace')
 except: pass
+# ## 本地补丁: stapp_pyw_stdout_stderr
+# pythonw.exe 运行时 sys.stdout/stderr 为 None，直接写入会崩溃。
+# 重定向到 devnull 并设置 errors='replace' 防止编码异常的静默挂死。
+if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+if sys.stderr is None: sys.stderr = open(os.devnull, "w")
+try: sys.stdout.reconfigure(errors='replace')
+except: pass
+try: sys.stderr.reconfigure(errors='replace')
+except: pass
+# /## 本地补丁
 script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(script_dir, '..')))
 sys.path.append(os.path.abspath(script_dir))
@@ -20,7 +30,7 @@ from continue_cmd import handle_frontend_command, reset_conversation, list_sessi
 from btw_cmd import handle_frontend_command as btw_handle_frontend
 from export_cmd import last_assistant_text, export_to_temp, wrap_for_clipboard
 
-st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Cowork", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -75,10 +85,8 @@ def build_prompt(objective):
     return f"""读取 {agent.log_path} 尾部，获取 agent 的最新输出。
 用户的 loop 诉求：<objective>{objective}</objective>
 判断该 agent 是否偷懒、是否真正完成诉求，用 <next_prompt></next_prompt> 输出要追加给它的指令：
-一般复述 objective，或不超过 10 字的**督促**，如：别停，继续 / 这就叫最优？你优化到位了吗 / 看我要求，你达成了吗 / 你好好看清楚 / 你能不能看看记忆 / 把关键发现和阶段性成果落盘，然后继续
-不允许促进 agent 停止或代替宣告任务完成，只允许催促不要对原任务进行评价，特别**禁止**“任务已完成，结束”这种让agent结束的指令，你的任务是让agent继续loop而非停止。
-只输出 <next_prompt>…</next_prompt>，若需要停止则不要输出此tag。
-"""
+一般复述 objective，或不超过 10 字的督促，如：别停，继续 / 这就叫最优？你优化到位了吗 / 看我要求，你达成了吗 / 你好好看清楚 / 你能不能看看记忆
+只输出 <next_prompt>…</next_prompt>。"""
 
 @st.cache_resource
 def get_controller():
@@ -108,9 +116,9 @@ def render_sidebar():
     selected_idx = st.selectbox("LLM", [idx for idx, _, _ in llm_options], index=next((i for i, (idx, _, _) in enumerate(llm_options) if idx == current_idx), 0), format_func=llm_labels.get, label_visibility="collapsed", key="sidebar_llm_select")
     if selected_idx != current_idx:
         agent.next_llm(selected_idx); st.rerun(scope="fragment")
-    if st.button(T('force_stop')):
+    if st.button(T('force_stop'), key='main_force_stop'):
         agent.abort(); st.toast("Stop signal sended"); st.rerun()
-    if st.button(T('desktop_pet')):
+    if st.button(T('desktop_pet'), key='main_desktop_pet'):
         kwargs = {'creationflags': 0x08} if sys.platform == 'win32' else {}
         pet_script = os.path.join(script_dir, 'desktop_pet_v2.pyw')
         if not os.path.exists(pet_script):
@@ -133,7 +141,7 @@ def render_sidebar():
         agent._turn_end_hooks['pet'] = _pet_hook
         st.toast("Desktop pet started")
     
-    if st.button(T('suggest_btn')):
+    if st.button(T('suggest_btn'), key='main_suggest_btn'):
         st.session_state['_inject_prompt'] = T('suggest_prompt')
         st.rerun(scope="app")
     st.divider()
@@ -142,30 +150,30 @@ def render_sidebar():
         field-sizing: content; min-height: 1.6em !important; height: auto !important;
     }
     </style>""", unsafe_allow_html=True)
-    st.text_area("Loop prompt", value=st.session_state.get('loop_prompt_input', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=1)
+    st.text_area("Loop prompt", value=st.session_state.get('loop_prompt_input', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68)  # ## 本地补丁: stapp_pyw_height_68
     if st.session_state.get('loop_enabled'):
-        if st.button("⏹️ Stop Loop"):
+        if st.button("⏹️ Stop Loop", key="sidebar_stop_loop"):
             st.session_state.loop_enabled = False
             st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
         st.caption("🔁 Looping")
     else:
-        if st.button("🔁 Loop!"):
+        if st.button("🔁 Loop!", key="sidebar_loop"):
             st.session_state.loop_enabled = True
             get_controller()
             st.session_state['_inject_prompt'] = st.session_state.get('loop_prompt_input', '')
             st.toast("🔁 Looping"); st.rerun(scope="app")
     st.divider()
-    if st.button(T('auto_start')):
+    if st.button(T('auto_start'), key='sidebar_auto_start'):
         st.session_state.last_reply_time = int(time.time()) - 1800
         st.session_state.autonomous_enabled = True
         st.rerun(scope="app")
     if st.session_state.autonomous_enabled:
-        if st.button(T('auto_pause')):
+        if st.button(T('auto_pause'), key='sidebar_auto_pause'):
             st.session_state.autonomous_enabled = False
             st.toast(T('auto_pause')); st.rerun(scope="app")
         st.caption(T('auto_on_cap'))
     else:
-        if st.button(T('auto_enable'), type="primary"):
+        if st.button(T('auto_enable'), type="primary", key='sidebar_auto_enable'):
             st.session_state.autonomous_enabled = True
             st.toast("✅"); st.rerun(scope="app")
         st.caption(T('auto_off_cap'))
@@ -388,11 +396,11 @@ elif st.session_state.get('display_queue') is not None:
 # ── 空闲自主行动：fragment 定时检测，替代 launch.pyw 的 idle_monitor ──
 @st.fragment(run_every=timedelta(minutes=1))
 def _idle_checker():
-    if st.session_state.get('loop_enabled'):
+    if st.session_state.get('loop_enabled'):                       # 循环回程:取controller回填
         b = get_controller()
         if b['ready']:
             b['ready'] = False
-            if b['out'] and '停止循环' not in b['out']: st.session_state['_inject_prompt'] = b['out']
+            if b['out']: st.session_state['_inject_prompt'] = b['out']
             else: st.session_state.loop_enabled = False
             st.rerun(scope="app")
         return
@@ -404,150 +412,3 @@ def _idle_checker():
         st.session_state['last_reply_time'] = int(time.time())     # 防重入
         st.rerun(scope="app")
 _idle_checker()
-
-# ## 本地补丁: stapp_pyw_stdout_stderr
-
-    st.text_area("Loop prompt", value=st.session_state.get('loop_prompt_input', "继续" if LANG=='zh' else 'next'), key="loop_prompt_input", height=68)  # ## 本地补丁: stapp_pyw_height_68
-    if st.session_state.get('loop_enabled'):
-        if st.button("⏹️ Stop Loop", key="sidebar_stop_loop"):
-            st.session_state.loop_enabled = False
-            st.toast("⏹️ Loop stopped"); st.rerun(scope="app")
-        st.caption("🔁 Looping")
-    else:
-        if st.button("🔁 Loop!", key="sidebar_loop"):
-            st.session_state.loop_enabled = True
-            get_controller()
-            st.session_state['_inject_prompt'] = st.session_state.get('loop_prompt_input', '')
-            st.toast("🔁 Looping"); st.rerun(scope="app")
-    st.divider()
-    if st.button(T('auto_start'), key='sidebar_auto_start'):
-        st.session_state.last_reply_time = int(time.time()) - 1800
-        st.session_state.autonomous_enabled = True
-        st.rerun(scope="app")
-    if st.session_state.autonomous_enabled:
-        if st.button(T('auto_pause'), key='sidebar_auto_pause'):
-            st.session_state.autonomous_enabled = False
-            st.toast(T('auto_pause')); st.rerun(scope="app")
-        st.caption(T('auto_on_cap'))
-    else:
-        if st.button(T('auto_enable'), type="primary", key='sidebar_auto_enable'):
-            st.session_state.autonomous_enabled = True
-            st.toast("✅"); st.rerun(scope="app")
-        st.caption(T('auto_off_cap'))
-with st.sidebar: render_sidebar()
-
-def fold_turns(text):
-    """Return list of segments: [{'type':'text','content':...}, {'type':'fold','title':...,'content':...}]"""
-    # 先把4+反引号块替换为占位符，避免误切子agent嵌套的 LLM Running
-    _ph = []
-    safe = re.sub(r'`{4,}.*?`{4,}', lambda m: (_ph.append(m.group(0)), f'\x00PH{len(_ph)-1}\x00')[1], text, flags=re.DOTALL)
-    # 流式中间态：末尾可能有未闭合的4+反引号块，也需保护
-    safe = re.sub(r'`{4,}[^`].*$', lambda m: (_ph.append(m.group(0)), f'\x00PH{len(_ph)-1}\x00')[1], safe, flags=re.DOTALL)
-    parts = re.split(r'(\**LLM Running \(Turn \d+\) \.\.\.\*\**)', safe)
-    parts = [re.sub(r'\x00PH(\d+)\x00', lambda m: _ph[int(m.group(1))], p) for p in parts]
-    if len(parts) < 4: return [{'type': 'text', 'content': text}]
-    segments = []
-    if parts[0].strip(): segments.append({'type': 'text', 'content': parts[0]})
-    turns = []
-    for i in range(1, len(parts), 2):
-        marker = parts[i]
-        content = parts[i+1] if i+1 < len(parts) else ''
-        turns.append((marker, content))
-    for idx, (marker, content) in enumerate(turns):
-        if idx < len(turns) - 1:
-            _c = re.sub(r'`{3,}.*?`{3,}|<thinking>.*?</thinking>', '', content, flags=re.DOTALL)
-            matches = re.findall(r'<summary>\s*((?:(?!<summary>).)*?)\s*</summary>', _c, re.DOTALL)
-            if matches:
-                title = matches[0].strip()
-                title = title.split('\n')[0]
-                if len(title) > 50: title = title[:50] + '...'
-            else:
-                _plain = _c.strip().split('\n', 1)[0]
-                title = (_plain[:50] + '...') if len(_plain) > 50 else (_plain or marker.strip('*'))
-            segments.append({'type': 'fold', 'title': title, 'content': content})
-        else: segments.append({'type': 'text', 'content': marker + content})
-    return segments
-_SUMMARY_TAG_RE = re.compile(r'<summary>.*?</summary>\s*', re.DOTALL)
-
-def render_segments(segments, suffix=''):
-    # 整块重画：调用方用 slot.container() 包裹，保证 DOM 路径稳定、跨 rerun 对齐（消除"灰色重影"）。
-    # heartbeat 空转时 segments 不变 → Streamlit 后端 diff 无变化 → 前端零闪烁；
-    # 但 container/markdown 本身是 API 调用，StopException 仍会被抛出（abort 照常起作用）。
-    for seg in segments:
-        if seg['type'] == 'fold':
-            with st.expander(seg['title'], expanded=False): st.markdown(seg['content'])
-        else:
-            st.markdown(seg['content'] + suffix)
-
-def agent_backend_stream(prompt=None):
-    """Drain main task display_queue.
-    - prompt given:  start a fresh task; new dq is kept in session_state.
-    - prompt is None: resume a dq left in session_state by a prior run (e.g. after /btw).
-    Per-chunk progress is mirrored to session_state.partial_response so the rendered
-    bubble survives reruns. No implicit agent.abort() — explicit stop is on the Stop button."""
-    if prompt is not None:
-        st.session_state.display_queue = agent.put_task(prompt, source="user")
-        st.session_state.partial_response = ''
-    dq = st.session_state.get('display_queue')
-    if dq is None: return
-    # Drop a dangling 'LLM Running (Turn N) ...' marker if the captured partial
-    # ended right at a turn boundary with no content yet — otherwise the resume
-    # bubble flashes as a marker-only gray line. The marker reappears with
-    # content on the next chunk (raw_resp is cumulative).
-    response = re.sub(r'\**LLM Running \(Turn \d+\) \.\.\.\**\s*$',
-                      '', st.session_state.get('partial_response', '')).rstrip()
-    try:
-        while True:
-            try: item = dq.get(timeout=1)
-            except queue.Empty:
-                yield response   # heartbeat: let outer st.markdown() run → Streamlit checks StopException
-                continue
-            if 'next' in item:
-                response = item['next']
-                st.session_state.partial_response = response
-                yield response
-            if 'done' in item:
-                st.session_state.display_queue = None
-                st.session_state.partial_response = ''
-                yield item['done']; break
-    finally:
-        agent.abort()
-        try:
-            st.session_state.display_queue = None
-            st.session_state.partial_response = ''
-        except BaseException:
-            pass
-
-
-def render_main_stream(prompt=None):
-    """Render the assistant bubble for the main task (new or resumed). Saves final to messages."""
-    with st.chat_message("assistant"):
-        frozen = 0; live = st.empty(); response = ''
-        CURSOR = ' ▌'
-        for response in agent_backend_stream(prompt):
-            segs = fold_turns(response)
-            n_done = max(0, len(segs) - 1)
-            while frozen < n_done:
-                with live.container(): render_segments([segs[frozen]])
-                live = st.empty(); frozen += 1
-            with live.container(): render_segments([segs[-1]], suffix=CURSOR)   # live 区域
-        segs = fold_turns(response)
-        for i in range(frozen, len(segs)):
-            with live.container(): render_segments([segs[i]])
-            if i < len(segs) - 1: live = st.empty()
-    if response:
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.session_state.last_reply_time = int(time.time())
-        # ── 循环回调：回答完成戳醒 controller 决策(去程,现取最新objective) ──
-        if st.session_state.get('loop_enabled'):
-            b = get_controller()
-            b['obj'] = st.session_state.get('loop_prompt_input', ''); b['ready'] = False; b['ev'].set()
-
-if "messages" not in st.session_state: st.session_state.messages = []
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        # 用 slot=st.empty() + with slot.container(): ... 的外壳，DOM 路径和流式渲染完全一致，跨 rerun 对齐
-        slot = st.empty()
-        with slot.container():
-            if msg["role"] == "assistant": render_segments(fold_turns(msg["content"]))
-            else: st.markdown(msg["content"])
