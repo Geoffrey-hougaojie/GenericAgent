@@ -98,6 +98,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema,
             if outcome.next_prompt.startswith('未知工具'): client.last_tools = ''
             if outcome.data is not None and tool_name != 'no_tool': 
                 datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data) 
+                if len(datastr) > 1000: datastr = _compress_tool_result(tool_name, datastr)
                 tool_results.append({'tool_use_id': tid, 'content': datastr})
             next_prompts.add(outcome.next_prompt)
         if len(next_prompts) == 0 or exit_reason:
@@ -135,3 +136,47 @@ def _compact_tool_args(name, args):
         if cs: q += '\ncandidates:\n' + '\n'.join(f'- {c}' for c in cs)
         return q
     s = json.dumps(a, ensure_ascii=False); return (s[:120]+'...') if len(s)>120 else s
+
+COMPRESS_THRESHOLD = 1000
+COMPRESS_PREVIEW = 200
+
+MATCH_PATTERNS = [
+    r'(?:error|Error|ERROR|fail|Fail|FAIL|exception|Exception)',
+    r'(?:成功|失败|错误|完成)',
+    r'(?:result|output|状态|status|stdout|stderr)',
+    r'(?:===|---|\*\*\*)',
+]
+
+def _compress_tool_result(tool_name: str, data_str: str) -> str:
+    n = len(data_str)
+    if n <= COMPRESS_THRESHOLD:
+        return data_str
+    if n <= 5000:
+        head = data_str[:COMPRESS_PREVIEW]
+        tail = data_str[-COMPRESS_PREVIEW:]
+        return f"{head}\n... [skip {n - 2*COMPRESS_PREVIEW} chars] ...\n{tail}"
+    lines = data_str.split('\n')
+    if len(lines) < 15:
+        head = data_str[:COMPRESS_PREVIEW]
+        tail = data_str[-COMPRESS_PREVIEW:]
+        return f"{head}\n... [skip {n - 2*COMPRESS_PREVIEW} chars] ...\n{tail}"
+    matched_indices = set()
+    for pattern in MATCH_PATTERNS:
+        for i, line in enumerate(lines):
+            if re.search(pattern, line):
+                matched_indices.update(range(max(0, i-3), min(len(lines), i+4)))
+    if not matched_indices:
+        matched_indices = set(range(5)) | set(range(len(lines)-5, len(lines)))
+    result_lines = []
+    last_idx = -99
+    for i in sorted(matched_indices):
+        if i > last_idx + 1:
+            result_lines.append(f"... [skip {i - last_idx - 1} lines] ...")
+        result_lines.append(lines[i])
+        last_idx = i
+    tail_start = len(lines) - 5
+    if last_idx < tail_start:
+        result_lines.append(f"... [skip {tail_start - last_idx - 1} lines] ...")
+        result_lines.extend(lines[tail_start:])
+    result = '\n'.join(result_lines)
+    return f"[compressed: {n}->{len(result)} chars, {len(matched_indices)} key lines]\n{result}"
