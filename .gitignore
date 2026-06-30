@@ -55,6 +55,7 @@ memory/L4_raw_sessions/*
 !memory/ljqCtrl_sop.md
 !memory/macljqCtrl.py
 !memory/computer_use.md
+!memory/ljqCtrlBg.py
 
 # procmem_scanner related tools
 !memory/procmem_scanner.py
@@ -121,11 +122,7 @@ memory/L4_raw_sessions/*
 .vs/
 restore_commit.txt
 
-sche_tasks/done/
-sche_tasks/__pycache__/
-sche_tasks/*.log
-sche_tasks/.cron_daemon_pid
-sche_tasks/tool_templates/
+sche_tasks/
 # CDP Bridge 密钥配置（首次运行自动生成）
 assets/tmwd_cdp_bridge/config.js
 assets/copilot_proxy.pyw
@@ -153,8 +150,3 @@ frontends/conductor_im_plugins/*
 
 # 本地 bug / 局限报告草稿（交给维护者参考，不进仓库）
 /BUG_*.md
-# Local patches and configs
-learn_sandbox.py
-learn_test_runner.py
-*.bak.*
-frontends/*.bak.*

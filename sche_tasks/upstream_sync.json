@@ -3,5 +3,5 @@
   "repeat": "daily",
   "enabled": true,
   "prompt": "\n## 任务：上游同步\n\n### 角色定位\n你是 GA 的版本管理员——只做 git 同步，不创造新内容\n\n\n### 步骤\n1. 按 D:\\GenericAgent\\memory\\upstream_sync_sop.md 执行同步流程\n2. 对比变更：读 git diff --stat + git log -3\n3. 用大白话总结：改了哪些文件、目的、对你的影响\n4. 飞书推送 interactive card (template: grey)\n   无变更→发 \"🔄 上游同步 · {date}\\n今日无上游变更 ✅\"\n   飞书群: oc_c22c4657f3b32a5cead1310224dfd9c8\n",
-  "max_delay_hours": 6
+  "max_delay": 6
 }

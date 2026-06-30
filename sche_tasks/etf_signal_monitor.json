@@ -2,6 +2,6 @@
   "schedule": "09:00",
   "repeat": "every_30m",
   "enabled": true,
-  "max_delay_hours": 6.5,
-  "prompt": "执行ETF信号监控：\n1. 检查当前时间——仅周一至周五 09:00-15:00（北京时间）执行，否则跳过并写简短说明到报告\n2. 运行 python ../sche_tasks/etf_signal_monitor.py --output ../temp/etf_report_latest.txt\n3. 将输出的报告内容写入本任务的报告路径（prompt中由scheduler注入的done路径）\n4. 若akshare数据拉取失败，记录错误到报告（不阻塞下次执行）"
+  "prompt": "执行ETF信号监控：\n1. 检查当前时间——仅周一至周五 09:00-15:00（北京时间）执行，否则跳过并写简短说明到报告\n2. 运行 python ../sche_tasks/etf_signal_monitor.py --output ../temp/etf_report_latest.txt\n3. 将输出的报告内容写入本任务的报告路径（prompt中由scheduler注入的done路径）\n4. 若akshare数据拉取失败，记录错误到报告（不阻塞下次执行）",
+  "max_delay": 6.5
 }

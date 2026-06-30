@@ -1,13 +1,6 @@
 import os, json, time as _time, socket as _socket, logging
 from datetime import datetime, timedelta
 
-# 端口锁：防止重复启动，bind失败时agentmain会直接崩溃退出
-# reload时mod.__dict__保留_lock，跳过重复绑定
-try: _lock
-except NameError:
-    _lock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-    _lock.bind(('127.0.0.1', 45762)); _lock.listen(1)
-
 INTERVAL = 120
 ONCE = False
 
@@ -25,7 +18,29 @@ if not _logger.handlers:
                                         datefmt='%Y-%m-%d %H:%M'))
     _logger.addHandler(_fh)
 
-# 默认最大延迟窗口（小时），超过此时间不触发
+# 端口锁：防止重复启动，指数退避重试(最多10次≈2分钟)
+# reload时mod.__dict__保留_lock，跳过重复绑定
+try: _lock
+except NameError:
+    max_retries = 10
+    for attempt in range(max_retries):
+        try:
+            _lock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            _lock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+            _lock.bind(('127.0.0.1', 45762)); _lock.listen(1)
+            _logger.info(f'Scheduler lock acquired on port 45762 (attempt {attempt+1})')
+            break
+        except OSError as e:
+            wait = min(60, 2 ** attempt)  # 1,2,4,8,16,32,60,60,60,60
+            if attempt < max_retries - 1:
+                _logger.warning(f'Port 45762 busy (attempt {attempt+1}/{max_retries}), '
+                                f'retrying in {wait}s: {e}')
+                _time.sleep(wait)
+            else:
+                _logger.critical(f'Port 45762 still busy after {max_retries} attempts, giving up')
+                raise
+
+_logger.info('Scheduler module loaded — port lock acquired, check() ready')# 默认最大延迟窗口（小时），超过此时间不触发
 DEFAULT_MAX_DELAY = 6
 _l4_t = 0  # last L4 archive time
 
@@ -129,3 +144,126 @@ def check():
                 f'完成后将执行报告写入 {rpt}。')
 
     return None
+
+
+def check_all():
+    """Return ALL triggered tasks (not just the first). For standalone daemon."""
+    # L4 archive cron (silent, every 12h)
+    global _l4_t
+    if _time.time() - _l4_t > 43200:
+        _l4_t = _time.time()
+        try:
+            import sys; sys.path.insert(0, os.path.join(_dir, '../memory/L4_raw_sessions'))
+            from compress_session import batch_process
+            raw_dir = os.path.join(_dir, '../temp/model_responses')
+            r = batch_process(raw_dir, dry_run=False)
+        except Exception as e:
+            _logger.error(f'L4 archive failed: {e}')
+
+    if not os.path.isdir(TASKS):
+        return []
+    now = datetime.now()
+    os.makedirs(DONE, exist_ok=True)
+    done_files = set(os.listdir(DONE))
+    results = []
+    for f in sorted(os.listdir(TASKS)):
+        if not f.endswith('.json'): continue
+        tid = f[:-5]
+        try:
+            with open(os.path.join(TASKS, f), encoding='utf-8') as fp:
+                task = json.loads(fp.read())
+        except Exception as e:
+            _logger.error(f'JSON parse error for {f}: {e}')
+            continue
+        if not task.get('enabled', False): continue
+
+        repeat = task.get('repeat', 'daily')
+        sched = task.get('schedule', '00:00')
+        try:
+            h, m = map(int, sched.split(':'))
+        except Exception as e:
+            _logger.error(f'Invalid schedule format in {f}: {sched!r} ({e})')
+            continue
+
+        if repeat == 'weekday' and now.weekday() >= 5: continue
+        if now.hour < h or (now.hour == h and now.minute < m): continue
+
+        max_delay = task.get('max_delay_hours', DEFAULT_MAX_DELAY)
+        sched_minutes = h * 60 + m
+        now_minutes = now.hour * 60 + now.minute
+        if (now_minutes - sched_minutes) > max_delay * 60:
+            _logger.info(f'SKIP {tid}: {now_minutes - sched_minutes}min past schedule, '
+                         f'exceeds max_delay={max_delay}h')
+            continue
+
+        last = _last_run(tid, done_files)
+        cooldown = _parse_cooldown(repeat)
+        if last and (now - last) < cooldown: continue
+
+        _logger.info(f'TRIGGER {tid} (repeat={repeat}, schedule={sched}, '
+                     f'last_run={last})')
+        ts = now.strftime('%Y-%m-%d_%H%M')
+        rpt = os.path.join(DONE, f'{ts}_{tid}.md')
+        prompt = task.get('prompt', '')
+        task_str = (f'[定时任务] {tid}\n'
+                    f'[报告路径] {rpt}\n\n'
+                    f'先读 scheduled_task_sop 了解执行流程，然后执行以下任务：\n\n'
+                    f'{prompt}\n\n'
+                    f'完成后将执行报告写入 {rpt}。')
+
+        # Write marker so we don't re-trigger this cycle
+        marker = os.path.join(DONE, f'{ts}_{tid}.md')
+        try:
+            with open(marker, 'w', encoding='utf-8') as mf:
+                mf.write(f'# TRIGGERED: {tid}\n'
+                         f'Scheduled: {sched} | Repeat: {repeat}\n'
+                         f'Triggered at: {ts}\n\n'
+                         f'此文件由调度器自动生成，标记任务已触发。\n'
+                         f'执行完成后的报告应覆盖此文件。\n')
+        except OSError as e:
+            _logger.error(f'Failed to write marker {marker}: {e}')
+
+        results.append(task_str)
+    return results
+
+
+if __name__ == '__main__':
+    import sys as _sys
+    # PID文件锁（替代socket端口锁，detached环境下socket不可靠）
+    _pid_file = os.path.join(_dir, '../sche_tasks/.scheduler.pid')
+    try:
+        with open(_pid_file, 'r') as pf:
+            old_pid = int(pf.read().strip())
+        # 检查旧进程是否存活
+        try:
+            os.kill(old_pid, 0)  # Signal 0 = just check
+            _logger.warning(f'Existing scheduler PID={old_pid} still alive, exiting')
+            _sys.exit(0)
+        except (OSError, ProcessLookupError):
+            _logger.info(f'Stale PID file (PID={old_pid} dead), overwriting')
+    except (FileNotFoundError, ValueError):
+        pass
+    with open(_pid_file, 'w') as pf:
+        pf.write(str(os.getpid()))
+    _logger.info(f'Scheduler daemon started PID={os.getpid()} (standalone mode)')
+    _last_heartbeat = 0
+    try:
+        while True:
+            try:
+                tasks = check_all()
+                if tasks:
+                    _logger.info(f'Cycle triggered {len(tasks)} task(s)')
+                now_ts = _time.time()
+                if now_ts - _last_heartbeat > 3600:
+                    _logger.info(f'cron_daemon heartbeat TICK={int(now_ts//60)} active=standalone')
+                    _last_heartbeat = now_ts
+            except Exception as e:
+                _logger.error(f'Daemon cycle error: {e}')
+                import traceback
+                _logger.error(traceback.format_exc())
+            _time.sleep(INTERVAL)
+    finally:
+        try:
+            os.remove(_pid_file)
+        except:
+            pass

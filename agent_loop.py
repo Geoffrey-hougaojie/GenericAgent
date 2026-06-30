@@ -19,9 +19,13 @@ class BaseHandler:
         method_name = f"do_{tool_name}"
         if hasattr(self, method_name):
             args['_index'] = index; args['_tool_num'] = tool_num
-            _hook('tool_before', locals())
+            ctx = _hook('tool_before', {'tool_name': tool_name, 'args': args, 'self': self})
+            if ctx.get('_blocked'):
+                yield f"🛡️ 被安全守卫拦截: {tool_name}\n"
+                return StepOutcome(None, next_prompt=f"安全守卫拦截了 {tool_name}", should_exit=False)
+            args = ctx.get('args', args)
             ret = yield from try_call_generator(getattr(self, method_name), args, response)
-            _hook('tool_after', locals())
+            _hook('tool_after', {'tool_name': tool_name, 'args': args, 'ret': ret, 'self': self})
             return ret
         elif tool_name == 'bad_json': return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)
         else:

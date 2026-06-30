@@ -6,7 +6,7 @@
 ```json
 {"schedule":"08:00", "repeat":"daily", "enabled":true, "prompt":"...", "max_delay_hours":6}
 ```
-repeat可选：daily | weekday | weekly | monthly | once | every_Nh（每N小时）| every_Nd（每N天）
+repeat可选：daily | weekday | weekly | monthly | once | every_Nh（每N小时）| every_Nm（每N分钟）| every_Nd（每N天）
 max_delay_hours（可选，默认6）：超过schedule多少小时后不再触发，防止开机太晚执行过时任务
 
 ## 触发流程

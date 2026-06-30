@@ -2,6 +2,6 @@
   "schedule": "08:00",
   "repeat": "daily",
   "enabled": true,
-  "max_delay_hours": 3,
-  "prompt": "执行每日技术博客写作：\n1. 用Bing搜索今天AI/科技领域最火的1-2个话题（中文搜索结果优先）\n2. 点进2-3篇文章了解详细内容\n3. 写一篇800-1500字的中文博客文章，结构：吸睛标题→概述→核心要点→分析解读→个人观点→总结\n4. 保存到 ../temp/tech_blog/YYYY-MM-DD_article.md，格式干净整洁\n5. 同时在报告路径（scheduler注入的done路径）写简短摘要"
+  "prompt": "执行每日技术博客写作：\n1. 用Bing搜索今天AI/科技领域最火的1-2个话题（中文搜索结果优先）\n2. 点进2-3篇文章了解详细内容\n3. 写一篇800-1500字的中文博客文章，结构：吸睛标题→概述→核心要点→分析解读→个人观点→总结\n4. 保存到 ../temp/tech_blog/YYYY-MM-DD_article.md，格式干净整洁\n5. 同时在报告路径（scheduler注入的done路径）写简短摘要",
+  "max_delay": 3
 }
